@@ -17,30 +17,28 @@ use Keboola\DbWriter\WriterInterface;
 class Redshift extends Writer implements WriterInterface
 {
     private static $allowedTypes = [
-        'int', 'smallint', 'bigint', 'money',
-        'decimal', 'real', 'float',
-        'date', 'datetime', 'datetime2', 'time', 'timestamp',
-        'char', 'varchar', 'text',
-        'nchar', 'nvarchar', 'ntext',
-        'binary', 'varbinary', 'image',
+        'int', 'int2', 'int4', 'int8',
+        'smallint', 'integer', 'bigint',
+        'decimal', 'real', 'double precision', 'numeric',
+        'float', 'float4', 'float8',
+        'boolean',
+        'char', 'character', 'nchar', 'bpchar',
+        'varchar', 'character varying', 'nvarchar', 'text',
+        'date', 'timestamp', 'timestamp without timezone'
     ];
 
     private static $typesWithSize = [
-        'identity',
-        'decimal', 'float',
-        'datetime', 'time',
-        'char', 'varchar',
-        'nchar', 'nvarchar',
-        'binary', 'varbinary',
-    ];
-
-    private static $unicodeTypes = [
-        'nchar', 'nvarchar', 'ntext',
+        'decimal', 'real', 'double precision', 'numeric',
+        'float', 'float4', 'float8',
+        'char', 'character', 'nchar', 'bpchar',
+        'varchar', 'character varying', 'nvarchar', 'text',
     ];
 
     private static $numericTypes = [
-        'int', 'smallint', 'bigint', 'money',
-        'decimal', 'real', 'float'
+        'int', 'int2', 'int4', 'int8',
+        'smallint', 'integer', 'bigint',
+        'decimal', 'real', 'double precision', 'numeric',
+        'float', 'float4', 'float8',
     ];
 
     /** @var \PDO */
@@ -98,9 +96,8 @@ class Redshift extends Writer implements WriterInterface
 
     public function write(CsvFile $csv, array $table)
     {
+        // skip the header
         $csv->next();
-        $csvHeader = $csv->current();
-        $items = $this->reorderColumns($csvHeader, $table['items']);
         $csv->next();
 
         $columnsCount = count($csv->current());
@@ -109,120 +106,26 @@ class Redshift extends Writer implements WriterInterface
         $this->db->beginTransaction();
 
         while ($csv->current() !== false) {
-            $sql = sprintf(
-                    "INSERT INTO %s (%s) ",
-                    $this->escape($table['dbName']),
-                    implode(',', $csvHeader)
-                ) . PHP_EOL;
+            $sql = "INSERT INTO " . $this->escape($table['dbName']) . " VALUES ";
 
-            for ($i=0; $i<$rowsPerInsert && $csv->current() !== false; $i++) {
+            for ($i=0; $i<1 && $csv->current() !== false; $i++) {
                 $sql .= sprintf(
-                    "SELECT %s UNION ALL" . PHP_EOL,
+                    "(%s),",
                     implode(
                         ',',
-                        $this->encodeCsvRow(
-                            $this->escapeCsvRow($csv->current()),
-                            $items
-                        )
+                        $csv->current()
                     )
                 );
                 $csv->next();
             }
-            // strip the last UNION ALL
-            $sql = substr($sql, 0, -10);
+            $sql = substr($sql, 0, -1);
 
-            $this->execQuery($sql);
+            $this->db->exec($sql);
         }
 
         $this->db->commit();
     }
-
-    private function reorderColumns($csvHeader, $items)
-    {
-        $reordered = [];
-        foreach ($csvHeader as $csvCol) {
-            foreach ($items as $item) {
-                if ($csvCol == $item['name']) {
-                    $reordered[] = $item;
-                }
-            }
-        }
-
-        return $reordered;
-    }
-
-    private function encodeCsvRow($row, $columnDefinitions)
-    {
-        $res = [];
-        foreach ($row as $k => $v) {
-            if (strtolower($columnDefinitions[$k]['type']) == 'ignore') {
-                continue;
-            }
-            $decider = $this->getEncodingDecider($columnDefinitions[$k]['type']);
-            $res[$k] = $decider($v);
-        }
-
-        return $res;
-    }
-
-    private function getEncodingDecider($type)
-    {
-        return function ($data) use ($type) {
-            if (strtolower($data) === 'null') {
-                return $data;
-            }
-
-            if (in_array(strtolower($type), self::$numericTypes) && empty($data)) {
-                return 0;
-            }
-
-            if (!in_array(strtolower($type), self::$numericTypes)) {
-                $data = "'" . $data . "'";
-            }
-
-            if (in_array(strtolower($type), self::$unicodeTypes)) {
-                return "N" . $data;
-            }
-
-            return $data;
-        };
-    }
-
-    private function escapeCsvRow($row)
-    {
-        $res = [];
-        foreach ($row as $k => $v) {
-            $res[$k] = $this->msEscapeString($v);
-        }
-
-        return $res;
-    }
-
-    private function msEscapeString($data)
-    {
-        if (!isset($data) || empty($data)) {
-            return '';
-        }
-        if (is_numeric($data)) {
-            return $data;
-        }
-
-        $non_displayables = [
-            '/%0[0-8bcef]/',            // url encoded 00-08, 11, 12, 14, 15
-            '/%1[0-9a-f]/',             // url encoded 16-31
-            '/[\x00-\x08]/',            // 00-08
-            '/\x0b/',                   // 11
-            '/\x0c/',                   // 12
-            '/[\x0e-\x1f]/'             // 14-31
-        ];
-        foreach ($non_displayables as $regex) {
-            $data = preg_replace($regex, '', $data);
-        }
-        $data = str_replace("'", "''", $data);
-
-        return $data;
-    }
-
+    
     public function isTableValid(array $table, $ignoreExport = false)
     {
         // TODO: Implement isTableValid() method.
