@@ -1,0 +1,24 @@
+app:
+  build: .
+  volumes:
+    - .:/code
+  working_dir: /code
+  entrypoint: "./phpunit.sh"
+  tty: true
+  stdin_open: true
+  environment:
+    REDSHIFT_DB_HOST: $REDSHIFT_DB_HOST
+    REDSHIFT_DB_PORT: $REDSHIFT_DB_PORT
+    REDSHIFT_DB_USER: $REDSHIFT_DB_USER
+    REDSHIFT_DB_PASSWORD: $REDSHIFT_DB_PASSWORD
+    REDSHIFT_DB_DATABASE: $REDSHIFT_DB_DATABASE
+  links:
+    - sshproxy
+
+sshproxy:
+  build: ./tests/env/sshproxy
+  volumes:
+      - ./tests/env/sshproxy:/code
+  working_dir: /code
+  ports:
+    - "2222:22"

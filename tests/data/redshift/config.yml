@@ -1,0 +1,60 @@
+parameters:
+    db:
+        driver: mssql
+        host: mssql
+        port: 1433
+        database: test
+        user:
+        password:
+
+    tables:
+        -
+            tableId: simple
+            dbName: dbo.simple
+            export: 1
+            lastChange:
+            incremental: true
+            primaryKey: [id]
+            items:
+                -
+                    name: id
+                    dbName: id
+                    type: int
+                    size:
+                    nullable:
+                    default:
+                -
+                    name: name
+                    dbName: name
+                    type: nvarchar
+                    size: 255
+                    nullable:
+                    default:
+                -
+                    name: glasses
+                    dbName: glasses
+                    type: nvarchar
+                    size: 255
+                    nullable:
+                    default:
+
+        -
+            tableId: special
+            dbName: dbo.special
+            export: 1
+            lastChange:
+            items:
+                -
+                    name: col1
+                    dbName: col1
+                    type: varchar
+                    size: 255
+                    nullable:
+                    default:
+                -
+                    name: col2
+                    dbName: col2
+                    type: varchar
+                    size: 255
+                    nullable:
+                    default:
