@@ -34,7 +34,7 @@ class RedshiftTest extends BaseTest
 
         $this->config = $this->getConfig(self::DRIVER);
         $this->config['parameters']['writer_class'] = 'Redshift';
-        $this->config['parameters']['db']['schema'] = getenv('REDSHIFT_DB_SCHEMA');
+        $this->config['parameters']['db']['schema'] = 'public';
         $this->writer = $this->getWriter($this->config['parameters']);
 
         $tables = $this->config['parameters']['tables'];

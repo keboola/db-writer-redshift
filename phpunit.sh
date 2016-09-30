@@ -33,8 +33,8 @@ export REDSHIFT_DB_SSH_KEY_PUBLIC="ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC2tGpPt
 composer selfupdate
 composer install -n
 
-waitforservices
+export ROOT_PATH="/code";
 
-./vendor/bin/phpcs --standard=psr2 -n --ignore=vendor --extensions=php .
-./vendor/bin/phpunit "$@"
-./vendor/bin/test-reporter
+#./vendor/bin/phpcs --standard=psr2 -n --ignore=vendor --extensions=php .
+./vendor/bin/phpunit
+#./vendor/bin/test-reporter
