@@ -1,9 +1,10 @@
 parameters:
     db:
         driver: redshift
-        host: mssql
-        port: 1433
+        host:
+        port: 5439
         database: test
+        schema: public
         user:
         password:
 
@@ -11,8 +12,7 @@ parameters:
         -
             tableId: simple
             dbName: simple
-            export: 1
-            lastChange:
+            export: true
             incremental: true
             primaryKey: [id]
             items:
@@ -41,8 +41,7 @@ parameters:
         -
             tableId: special
             dbName: special
-            export: 1
-            lastChange:
+            export: true
             items:
                 -
                     name: col1
