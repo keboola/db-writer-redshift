@@ -64,7 +64,7 @@ class Application extends BaseApplication
 
     private function getManifest($tableId)
     {
-        return (new Yaml())->parse($this['parameters']['data_dir'] . "/in/tables/" . $tableId . ".manifest.csv");
+        return (new Yaml())->parse(file_get_contents($this['parameters']['data_dir'] . "/in/tables/" . $tableId . ".csv.manifest"));
     }
 
     private function reorderColumns($manifestColumns, $items)

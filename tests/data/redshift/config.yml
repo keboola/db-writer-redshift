@@ -1,7 +1,7 @@
 parameters:
     db:
         driver: redshift
-        host:
+        host: redshift
         port: 5439
         database: test
         schema: public
