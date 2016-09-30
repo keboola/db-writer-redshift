@@ -1,6 +1,6 @@
 parameters:
     db:
-        driver: mssql
+        driver: redshift
         host: mssql
         port: 1433
         database: test
@@ -10,7 +10,7 @@ parameters:
     tables:
         -
             tableId: simple
-            dbName: dbo.simple
+            dbName: simple
             export: 1
             lastChange:
             incremental: true
@@ -40,7 +40,7 @@ parameters:
 
         -
             tableId: special
-            dbName: dbo.special
+            dbName: special
             export: 1
             lastChange:
             items:

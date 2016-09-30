@@ -1,6 +1,5 @@
 <?php
 
-use Keboola\DbWriter\Application;
 use Keboola\DbWriter\Exception\ApplicationException;
 use Keboola\DbWriter\Exception\UserException;
 use Keboola\DbWriter\Logger;
@@ -22,7 +21,7 @@ try {
     $config['parameters']['data_dir'] = $arguments['data'];
     $config['parameters']['writer_class'] = 'Redshift';
 
-    $app = new Application($config, $logger);
+    $app = new \Keboola\DbWriter\Redshift\Application($config, $logger);
     echo json_encode($app->run());
 } catch (UserException $e) {
     $logger->log('error', $e->getMessage(), (array) $e->getData());

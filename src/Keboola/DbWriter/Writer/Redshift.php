@@ -9,6 +9,7 @@
 namespace Keboola\DbWriter\Writer;
 
 use Keboola\Csv\CsvFile;
+use Keboola\DbWriter\Exception\ApplicationException;
 use Keboola\DbWriter\Exception\UserException;
 use Keboola\DbWriter\Logger;
 use Keboola\DbWriter\Writer;
@@ -34,17 +35,15 @@ class Redshift extends Writer implements WriterInterface
         'varchar', 'character varying', 'nvarchar', 'text',
     ];
 
-    private static $numericTypes = [
-        'int', 'int2', 'int4', 'int8',
-        'smallint', 'integer', 'bigint',
-        'decimal', 'real', 'double precision', 'numeric',
-        'float', 'float4', 'float8',
-    ];
+//    private static $numericTypes = [
+//        'int', 'int2', 'int4', 'int8',
+//        'smallint', 'integer', 'bigint',
+//        'decimal', 'real', 'double precision', 'numeric',
+//        'float', 'float4', 'float8',
+//    ];
 
     /** @var \PDO */
     protected $db;
-
-    private $batched = true;
 
     /** @var Logger */
     protected $logger;
@@ -57,75 +56,72 @@ class Redshift extends Writer implements WriterInterface
 
     public function createConnection($dbParams)
     {
-        if (!empty($dbParams['batched'])) {
-            if ($dbParams['batched'] == false) {
-                $this->batched = false;
-            }
-        }
+        // convert errors to PDOExceptions
+        $options = [
+            \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
+//            \PDO::ATTR_EMULATE_PREPARES => false
+        ];
 
         // check params
-        foreach (['host', 'database', 'user', '#password'] as $r) {
+        foreach (['host', 'database', 'user', '#password', 'schema'] as $r) {
             if (!isset($dbParams[$r])) {
                 throw new UserException(sprintf("Parameter %s is missing.", $r));
             }
         }
 
-        $port = isset($dbParams['port']) ? $dbParams['port'] : '1433';
+        $port = isset($dbParams['port']) ? $dbParams['port'] : '5439';
+        $dsn = "pgsql:host={$dbParams['host']};port={$port};dbname={$dbParams["database"]}";
 
-        if ($port == '1433') {
-            $dsn = sprintf(
-                "dblib:host=%s;dbname=%s;charset=UTF-8",
-                $dbParams['host'],
-                $dbParams['database']
-            );
-        } else {
-            $dsn = sprintf(
-                "dblib:host=%s:%s;dbname=%s;charset=UTF-8",
-                $dbParams['host'],
-                $port,
-                $dbParams['database']
-            );
-        }
+        $this->logger->info(
+            "Connecting to DSN '" . $dsn . "'...",
+            [
+                'options' => $options
+            ]
+        );
 
-        // mssql dont support options
-        $pdo = new \PDO($dsn, $dbParams['user'], $dbParams['#password']);
-        $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+        $pdo = new \PDO($dsn, $dbParams['user'], $dbParams['#password'], $options);
+        $pdo->exec("SET search_path TO \"{$dbParams["schema"]}\";");
 
         return $pdo;
     }
 
-    public function write(CsvFile $csv, array $table)
+    public function writeFromS3($s3info, array $table)
     {
-        // skip the header
-        $csv->next();
-        $csv->next();
+        $s3key = $s3info["bucket"] . "/" . $s3info["key"];
 
-        $columnsCount = count($csv->current());
-        $rowsPerInsert = intval((1000 / $columnsCount) - 1);
+        // Generate copy command
+        $command = "COPY \"{$table['dbName']}\" FROM 's3://{$s3key}'"
+            . " CREDENTIALS 'aws_access_key_id={$s3info["credentials"]["access_key_id"]};aws_secret_access_key={$s3info["credentials"]["secret_access_key"]};token={$s3info["credentials"]["session_token"]}'"
+            . " REGION AS 'us-east-1' DELIMITER ',' CSV QUOTE '\"'"
+            . " NULL AS 'NULL' ACCEPTANYDATE TRUNCATECOLUMNS";
 
-        $this->db->beginTransaction();
-
-        while ($csv->current() !== false) {
-            $sql = "INSERT INTO " . $this->escape($table['dbName']) . " VALUES ";
-
-            for ($i=0; $i<1 && $csv->current() !== false; $i++) {
-                $sql .= sprintf(
-                    "(%s),",
-                    implode(
-                        ',',
-                        $csv->current()
-                    )
-                );
-                $csv->next();
-            }
-            $sql = substr($sql, 0, -1);
-
-            $this->db->exec($sql);
+        // Sliced files use manifest and no header
+        if (isset($s3info["isSliced"]) && $s3info["isSliced"] === true) {
+            $command .= " MANIFEST";
+        } else {
+            $command .= " IGNOREHEADER 1";
         }
 
-        $this->db->commit();
+        $command .= " GZIP;";
+
+        try {
+            $this->db->exec($command);
+        } catch (\PDOException $e) {
+            $query = $this->db->query("SELECT * FROM stl_load_errors WHERE query = pg_last_query_id();");
+            $result = $query->fetchAll();
+            $params = [
+                "query" => $command
+            ];
+            if (count($result)) {
+                $message = "Table '{$table}', column '" . trim($result[0]["colname"]) . "', line {$result[0]["line_number"]}: ". trim($result[0]["err_reason"]);
+                $params["redshift_errors"] = $result;
+            } else {
+                $message = "Query failed: " . $e->getMessage();
+            }
+            throw new UserException($message, 0, $e, $params);
+        }
     }
-    
+
     public function isTableValid(array $table, $ignoreExport = false)
     {
         // TODO: Implement isTableValid() method.
@@ -135,48 +131,33 @@ class Redshift extends Writer implements WriterInterface
 
     public function drop($tableName)
     {
-        $this->db->exec(sprintf("IF OBJECT_ID('%s', 'U') IS NOT NULL DROP TABLE %s;", $tableName, $tableName));
-    }
-
-    private function escape($obj)
-    {
-        $objNameArr = explode('.', $obj);
-
-        if (count($objNameArr) > 1) {
-            return $objNameArr[0] . ".[" . $objNameArr[1] . "]";
-        }
-
-        return "[" . $objNameArr[0] . "]";
+        $this->db->exec(sprintf("DROP TABLE IF EXISTS %s;", $tableName));
     }
 
     public function create(array $table)
     {
-        $sql = "CREATE TABLE `{$table['dbName']}` (";
-
+        $sql = "CREATE TABLE {$this->escape($table['dbName'])} (";
         $columns = $table['items'];
         foreach ($columns as $k => $col) {
-            $type = strtolower($col['type']);
-            if ($type == 'ignore') {
+            $type = strtoupper($col['type']);
+            if ($type == 'IGNORE') {
                 continue;
             }
-
-            if (!empty($col['size']) && in_array($type, self::$typesWithSize)) {
+            if (!empty($col['size'])) {
                 $type .= "({$col['size']})";
             }
-
-            $sql .= "`{$col['dbName']}` $type";
+            $null = $col['nullable'] ? 'NULL' : 'NOT NULL';
+            $default = empty($col['default']) ? '' : "DEFAULT '{$col['default']}'";
+            if ($type == 'TEXT') {
+                $default = '';
+            }
+            $sql .= "{$this->escape($col['dbName'])} $type $null $default";
             $sql .= ',';
         }
-
         $sql = substr($sql, 0, -1);
         $sql .= ");";
 
         $this->execQuery($sql);
-    }
-
-    public static function getAllowedTypes()
-    {
-        return self::$allowedTypes;
     }
 
     public function upsert(array $table, $targetTable)
@@ -184,37 +165,41 @@ class Redshift extends Writer implements WriterInterface
         $sourceTable = $this->escape($table['dbName']);
         $targetTable = $this->escape($targetTable);
 
-        $columns = array_map(function ($item) {
-            if (strtolower($item['type']) != 'ignore') {
+        $columns = array_map(
+            function ($item) {
                 return $this->escape($item['dbName']);
-            }
-        }, $table['items']);
+            },
+            array_filter($table['items'], function ($item) {
+                return strtolower($item['type']) != 'ignore';
+            })
+        );
 
         if (!empty($table['primaryKey'])) {
             // update data
             $joinClauseArr = [];
             foreach ($table['primaryKey'] as $index => $value) {
-                $joinClauseArr[] = "a.{$value}=b.{$value}";
+                $joinClauseArr[] = "{$targetTable}.{$value}={$sourceTable}.{$value}";
             }
             $joinClause = implode(' AND ', $joinClauseArr);
 
             $valuesClauseArr = [];
             foreach ($columns as $index => $column) {
-                $valuesClauseArr[] = "a.{$column}=b.{$column}";
+                $valuesClauseArr[] = "{$column}={$sourceTable}.{$column}";
             }
             $valuesClause = implode(',', $valuesClauseArr);
 
-            $query = "UPDATE a
+            $query = "UPDATE {$targetTable}
                 SET {$valuesClause}
-                FROM {$targetTable} a
-                INNER JOIN {$sourceTable} b ON {$joinClause}
+                FROM {$sourceTable}
+                WHERE {$joinClause}
             ";
 
             $this->execQuery($query);
 
             // delete updated from temp table
-            $query = "DELETE a FROM {$sourceTable} a
-                INNER JOIN {$targetTable} b ON {$joinClause}
+            $query = "DELETE FROM {$sourceTable}
+                USING {$targetTable}
+                WHERE {$joinClause}
             ";
 
             $this->execQuery($query);
@@ -226,14 +211,16 @@ class Redshift extends Writer implements WriterInterface
         $this->execQuery($query);
 
         // drop temp table
-        $this->drop($sourceTable);
+//        $this->drop($sourceTable);
+    }
+
+    public static function getAllowedTypes()
+    {
+        return self::$allowedTypes;
     }
 
     public function tableExists($tableName)
     {
-        $tableArr = explode('.', $tableName);
-        $tableName = isset($tableArr[1])?$tableArr[1]:$tableArr[0];
-        $tableName = str_replace(['[',']'], '', $tableName);
         $stmt = $this->db->query(sprintf("SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = '%s'", $tableName));
         $res = $stmt->fetchAll();
         return !empty($res);
@@ -241,17 +228,27 @@ class Redshift extends Writer implements WriterInterface
 
     private function execQuery($query)
     {
-        $this->logger->debug(sprintf("Executing query '%s'", $query));
+        $this->logger->info(sprintf("Executing query '%s'", $query));
         $this->db->exec($query);
     }
 
     public function showTables($dbName)
     {
-        // TODO: Implement showTables() method.
+        throw new ApplicationException("Method not implemented");
     }
 
     public function getTableInfo($tableName)
     {
-        // TODO: Implement getTableInfo() method.
+        throw new ApplicationException("Method not implemented");
+    }
+
+    public function write(CsvFile $csv, array $table)
+    {
+        throw new ApplicationException("Method not implemented");
+    }
+
+    private function escape($str)
+    {
+        return '"' . $str . '"';
     }
 }

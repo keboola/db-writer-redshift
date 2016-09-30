@@ -7,6 +7,7 @@ app:
   tty: true
   stdin_open: true
   environment:
+    STORAGE_API_TOKEN: $STORAGE_API_TOKEN
     REDSHIFT_DB_HOST: $REDSHIFT_DB_HOST
     REDSHIFT_DB_PORT: $REDSHIFT_DB_PORT
     REDSHIFT_DB_USER: $REDSHIFT_DB_USER

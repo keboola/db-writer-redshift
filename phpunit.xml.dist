@@ -14,7 +14,7 @@
         <const name="ROOT_PATH" value="./"/>
     </php>
 
-    <testsuite name="MSSQL Writer Test Suite">
+    <testsuite name="Redshift Writer Test Suite">
         <directory>tests</directory>
     </testsuite>
 
