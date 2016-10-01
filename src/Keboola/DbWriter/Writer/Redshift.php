@@ -113,7 +113,7 @@ class Redshift extends Writer implements WriterInterface
                 "query" => $command
             ];
             if (count($result)) {
-                $message = "Table '{$table}', column '" . trim($result[0]["colname"]) . "', line {$result[0]["line_number"]}: ". trim($result[0]["err_reason"]);
+                $message = "Table '{$table['dbName']}', column '" . trim($result[0]["colname"]) . "', line {$result[0]["line_number"]}: ". trim($result[0]["err_reason"]);
                 $params["redshift_errors"] = $result;
             } else {
                 $message = "Query failed: " . $e->getMessage();

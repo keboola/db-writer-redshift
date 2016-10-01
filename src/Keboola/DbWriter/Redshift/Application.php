@@ -51,7 +51,9 @@ class Application extends BaseApplication
                     $writer->upsert($table, $targetTableName);
                 }
             } catch (\PDOException $e) {
-                throw new UserException($e->getMessage(), 1, $e, ["trace" => $e->getTraceAsString()]);
+                throw new UserException($e->getMessage(), 0, $e, ["trace" => $e->getTraceAsString()]);
+            } catch (UserException $e) {
+                throw $e;
             } catch (\Exception $e) {
                 throw new ApplicationException($e->getMessage(), 2, $e, ["trace" => $e->getTraceAsString()]);
             }
