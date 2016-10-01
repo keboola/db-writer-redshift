@@ -211,7 +211,7 @@ class Redshift extends Writer implements WriterInterface
         $this->execQuery($query);
 
         // drop temp table
-//        $this->drop($sourceTable);
+        $this->drop($sourceTable);
     }
 
     public static function getAllowedTypes()
