@@ -9,6 +9,7 @@
 namespace Keboola\DbWriter\Redshift;
 
 use \Keboola\DbWriter\Application as BaseApplication;
+use Keboola\DbWriter\Exception\ApplicationException;
 use Keboola\DbWriter\Exception\UserException;
 use Keboola\DbWriter\Writer\Redshift;
 use Symfony\Component\Yaml\Yaml;
@@ -49,8 +50,10 @@ class Application extends BaseApplication
                     }
                     $writer->upsert($table, $targetTableName);
                 }
+            } catch (\PDOException $e) {
+                throw new UserException($e->getMessage(), 1, $e, ["trace" => $e->getTraceAsString()]);
             } catch (\Exception $e) {
-                throw new UserException($e->getMessage(), 400, $e);
+                throw new ApplicationException($e->getMessage(), 2, $e, ["trace" => $e->getTraceAsString()]);
             }
 
             $uploaded[] = $table['tableId'];
