@@ -62,7 +62,7 @@ class RedshiftTest extends BaseTest
         $filePath = $this->getInputCsv($tableId);
         $bucketId = 'in.c-test-wr-db-redshift';
         if (!$this->storageApi->bucketExists($bucketId)) {
-            $this->storageApi->createBucket('test-wr-db-redshift', Client::STAGE_IN);
+            $this->storageApi->createBucket('test-wr-db-redshift', Client::STAGE_IN, "", 'snowflake');
         }
 
         $sourceTableId = $this->storageApi->createTable($bucketId, $tableId, new CsvFile($filePath));

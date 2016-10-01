@@ -131,7 +131,7 @@ class Redshift extends Writer implements WriterInterface
 
     public function drop($tableName)
     {
-        $this->db->exec(sprintf("DROP TABLE IF EXISTS %s;", $tableName));
+        $this->db->exec(sprintf("DROP TABLE IF EXISTS %s;", $this->escape($tableName)));
     }
 
     public function create(array $table)
