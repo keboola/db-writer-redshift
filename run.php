@@ -3,6 +3,7 @@
 use Keboola\DbWriter\Exception\ApplicationException;
 use Keboola\DbWriter\Exception\UserException;
 use Keboola\DbWriter\Logger;
+use Keboola\DbWriter\Redshift\Application;
 use Keboola\DbWriter\Redshift\Configuration\ConfigDefinition;
 use Symfony\Component\Yaml\Yaml;
 
@@ -22,8 +23,7 @@ try {
     $config['parameters']['data_dir'] = $arguments['data'];
     $config['parameters']['writer_class'] = 'Redshift';
 
-    $app = new \Keboola\DbWriter\Redshift\Application($config, $logger);
-    $app->setConfigDefinition(new ConfigDefinition());
+    $app = new Application($config, $logger, new ConfigDefinition());
     echo json_encode($app->run());
 } catch (UserException $e) {
     $logger->log('error', $e->getMessage(), (array) $e->getData());

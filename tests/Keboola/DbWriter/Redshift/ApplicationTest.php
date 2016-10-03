@@ -8,14 +8,10 @@
  */
 namespace Keboola\DbWriter\Writer;
 
-use Keboola\Csv\CsvFile;
 use Keboola\DbWriter\Logger;
 use Keboola\DbWriter\Redshift\Application;
 use Keboola\DbWriter\Redshift\Configuration\ConfigDefinition;
 use Keboola\DbWriter\Test\BaseTest;
-use Keboola\StorageApi\Client;
-use Keboola\StorageApi\Options\GetFileOptions;
-use Symfony\Component\Yaml\Yaml;
 
 class ApplicationTest extends BaseTest
 {
@@ -34,8 +30,7 @@ class ApplicationTest extends BaseTest
 
     public function testRun()
     {
-        $app = new Application($this->config, new Logger('test'));
-        $app->setConfigDefinition(new ConfigDefinition());
+        $app = new Application($this->config, new Logger('test'), new ConfigDefinition());
 //        $app->run();
     }
 

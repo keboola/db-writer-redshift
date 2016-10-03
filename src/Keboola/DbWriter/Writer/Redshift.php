@@ -188,7 +188,8 @@ class Redshift extends Writer implements WriterInterface
             }
             $valuesClause = implode(',', $valuesClauseArr);
 
-            $query = "UPDATE {$targetTable}
+            $query = "
+                UPDATE {$targetTable}
                 SET {$valuesClause}
                 FROM {$sourceTable}
                 WHERE {$joinClause}
@@ -197,7 +198,8 @@ class Redshift extends Writer implements WriterInterface
             $this->execQuery($query);
 
             // delete updated from temp table
-            $query = "DELETE FROM {$sourceTable}
+            $query = "
+                DELETE FROM {$sourceTable}
                 USING {$targetTable}
                 WHERE {$joinClause}
             ";
