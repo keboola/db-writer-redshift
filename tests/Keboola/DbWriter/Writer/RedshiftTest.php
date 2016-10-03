@@ -9,6 +9,7 @@
 namespace Keboola\DbWriter\Writer;
 
 use Keboola\Csv\CsvFile;
+use Keboola\DbWriter\Redshift\Configuration\ConfigDefinition;
 use Keboola\DbWriter\Test\BaseTest;
 use Keboola\StorageApi\Client;
 use Keboola\StorageApi\Options\GetFileOptions;
@@ -35,6 +36,7 @@ class RedshiftTest extends BaseTest
         $this->config = $this->getConfig(self::DRIVER);
         $this->config['parameters']['writer_class'] = 'Redshift';
         $this->config['parameters']['db']['schema'] = 'public';
+        $this->config['parameters']['db']['password'] = $this->config['parameters']['db']['#password'];
         $this->writer = $this->getWriter($this->config['parameters']);
 
         $tables = $this->config['parameters']['tables'];

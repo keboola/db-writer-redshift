@@ -63,7 +63,7 @@ class Redshift extends Writer implements WriterInterface
         ];
 
         // check params
-        foreach (['host', 'database', 'user', '#password', 'schema'] as $r) {
+        foreach (['host', 'database', 'user', 'password', 'schema'] as $r) {
             if (!isset($dbParams[$r])) {
                 throw new UserException(sprintf("Parameter %s is missing.", $r));
             }
@@ -79,7 +79,7 @@ class Redshift extends Writer implements WriterInterface
             ]
         );
 
-        $pdo = new \PDO($dsn, $dbParams['user'], $dbParams['#password'], $options);
+        $pdo = new \PDO($dsn, $dbParams['user'], $dbParams['password'], $options);
         $pdo->exec("SET search_path TO \"{$dbParams["schema"]}\";");
 
         return $pdo;
