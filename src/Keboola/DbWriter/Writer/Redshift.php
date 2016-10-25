@@ -253,4 +253,9 @@ class Redshift extends Writer implements WriterInterface
     {
         return '"' . $str . '"';
     }
+
+    public function testConnection()
+    {
+        $this->db->query('select current_date')->execute();
+    }
 }
