@@ -30,8 +30,19 @@ class ApplicationTest extends BaseTest
 
     public function testRun()
     {
+        $this->config['action'] = "run";
         $app = new Application($this->config, new Logger('test'), new ConfigDefinition());
 //        $app->run();
+    }
+
+    public function testConnnection()
+    {
+        $this->config['action'] = "testConnection";
+        $app = new Application($this->config, new Logger('test'), new ConfigDefinition());
+        $data = $app->run();
+
+        $this->assertArrayHasKey('status', $data);
+        $this->assertEquals('success', $data['status']);
     }
 
 }
