@@ -61,7 +61,7 @@ class RedshiftTest extends BaseTest
 
     private function loadDataToS3($tableId)
     {
-        $this->s3Loader->upload($tableId);
+        return $this->s3Loader->upload($tableId);
     }
 
     public function testDrop()
