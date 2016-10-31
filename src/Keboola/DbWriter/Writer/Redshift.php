@@ -248,13 +248,13 @@ class Redshift extends Writer implements WriterInterface
         throw new ApplicationException("Method not implemented");
     }
 
-    public function testConnection()
-    {
-        $this->db->query("SELECT 1");
-    }
-
     private function escape($str)
     {
         return '"' . $str . '"';
+    }
+
+    public function testConnection()
+    {
+        $this->db->query('select current_date')->execute();
     }
 }
