@@ -3,8 +3,6 @@
 use Keboola\DbWriter\Exception\ApplicationException;
 use Keboola\DbWriter\Exception\UserException;
 use Keboola\DbWriter\Logger;
-use Monolog\Handler\NullHandler;
-
 use Keboola\DbWriter\Redshift\Application;
 use Keboola\DbWriter\Redshift\Configuration\ConfigDefinition;
 use Monolog\Handler\NullHandler;
