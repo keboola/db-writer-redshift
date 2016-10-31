@@ -5,6 +5,7 @@ use Keboola\DbWriter\Exception\UserException;
 use Keboola\DbWriter\Logger;
 use Keboola\DbWriter\Redshift\Application;
 use Keboola\DbWriter\Redshift\Configuration\ConfigDefinition;
+use Monolog\Handler\NullHandler;
 use Symfony\Component\Yaml\Yaml;
 
 define('APP_NAME', 'wr-db-redshift');
@@ -24,6 +25,11 @@ try {
     $config['parameters']['writer_class'] = 'Redshift';
 
     $app = new Application($config, $logger, new ConfigDefinition());
+
+    if (isset($app['action']) && $app['action'] !== 'run') {
+        $app['logger']->setHandlers(array(new NullHandler(Logger::INFO)));
+    }
+
     echo json_encode($app->run());
 } catch (UserException $e) {
     $logger->log('error', $e->getMessage(), (array) $e->getData());

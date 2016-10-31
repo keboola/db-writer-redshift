@@ -9,11 +9,10 @@
 namespace Keboola\DbWriter\Writer;
 
 use Keboola\Csv\CsvFile;
-use Keboola\DbWriter\Redshift\Configuration\ConfigDefinition;
+use Keboola\DbWriter\Redshift\Test\S3Loader;
 use Keboola\DbWriter\Test\BaseTest;
 use Keboola\StorageApi\Client;
 use Keboola\StorageApi\Options\GetFileOptions;
-use Symfony\Component\Yaml\Yaml;
 
 class RedshiftTest extends BaseTest
 {
@@ -27,12 +26,11 @@ class RedshiftTest extends BaseTest
     /** @var Client */
     private $storageApi;
 
+    /** @var S3Loader */
+    private $s3Loader;
+
     public function setUp()
     {
-        if (!defined('APP_NAME')) {
-            define('APP_NAME', 'wr-db-redshift');
-        }
-
         $this->config = $this->getConfig(self::DRIVER);
         $this->config['parameters']['writer_class'] = 'Redshift';
         $this->config['parameters']['db']['schema'] = 'public';
@@ -52,6 +50,8 @@ class RedshiftTest extends BaseTest
         if ($this->storageApi->bucketExists($bucketId)) {
             $this->storageApi->dropBucket($bucketId, ['force' => true]);
         }
+
+        $this->s3Loader = new S3Loader($this->dataDir, $this->storageApi);
     }
 
     private function getInputCsv($tableId)
@@ -61,36 +61,7 @@ class RedshiftTest extends BaseTest
 
     private function loadDataToS3($tableId)
     {
-        $filePath = $this->getInputCsv($tableId);
-        $bucketId = 'in.c-test-wr-db-redshift';
-        if (!$this->storageApi->bucketExists($bucketId)) {
-            $this->storageApi->createBucket('test-wr-db-redshift', Client::STAGE_IN, "", 'snowflake');
-        }
-
-        $sourceTableId = $this->storageApi->createTable($bucketId, $tableId, new CsvFile($filePath));
-
-        $job = $this->storageApi->exportTableAsync(
-            $sourceTableId,
-            [
-                'gzip' => true
-            ]
-        );
-        $fileInfo = $this->storageApi->getFile(
-            $job["file"]["id"],
-            (new GetFileOptions())->setFederationToken(true)
-        );
-
-        return [
-            "isSliced" => $fileInfo["isSliced"],
-            "region" => $fileInfo["region"],
-            "bucket" => $fileInfo["s3Path"]["bucket"],
-            "key" => $fileInfo["isSliced"]?$fileInfo["s3Path"]["key"] . "manifest":$fileInfo["s3Path"]["key"],
-            "credentials" => [
-                "access_key_id" => $fileInfo["credentials"]["AccessKeyId"],
-                "secret_access_key" => $fileInfo["credentials"]["SecretAccessKey"],
-                "session_token" => $fileInfo["credentials"]["SessionToken"]
-            ]
-        ];
+        $this->s3Loader->upload($tableId);
     }
 
     public function testDrop()

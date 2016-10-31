@@ -58,8 +58,7 @@ class Redshift extends Writer implements WriterInterface
     {
         // convert errors to PDOExceptions
         $options = [
-            \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
-//            \PDO::ATTR_EMULATE_PREPARES => false
+            \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION
         ];
 
         // check params
@@ -247,6 +246,11 @@ class Redshift extends Writer implements WriterInterface
     public function write(CsvFile $csv, array $table)
     {
         throw new ApplicationException("Method not implemented");
+    }
+
+    public function testConnection()
+    {
+        $this->db->query("SELECT 1");
     }
 
     private function escape($str)
