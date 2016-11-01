@@ -36,6 +36,10 @@ class Application extends BaseApplication
             $table['dbName'] .= $table['incremental']?'_temp_' . uniqid():'';
             $table['items'] = $this->reorderColumns($manifest['columns'], $table['items']);
 
+            if (empty($table['items'])) {
+                continue;
+            }
+
             try {
                 $writer->drop($table['dbName']);
                 $writer->create($table);
