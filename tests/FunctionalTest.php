@@ -20,20 +20,22 @@ class FunctionalTest extends BaseTest
 
     protected $dataDir = ROOT_PATH . 'tests/data/functional';
 
+    protected $defaultConfig;
+
     public function setUp()
     {
         // cleanup & init
-        $config = $this->initConfig();
-        $writer = $this->getWriter($config['parameters']);
+        $this->defaultConfig = $this->initConfig();
+        $writer = $this->getWriter($this->defaultConfig['parameters']);
         $s3Loader = new S3Loader(
             $this->dataDir,
             new Client([
                 'token' => getenv('STORAGE_API_TOKEN')
             ])
         );
-        $yaml = new Yaml();
 
-        foreach ($config['parameters']['tables'] as $table) {
+        $yaml = new Yaml();
+        foreach ($this->defaultConfig['parameters']['tables'] as $table) {
             // clean destination DB
             $writer->drop($table['dbName']);
 
@@ -52,8 +54,6 @@ class FunctionalTest extends BaseTest
 
     public function testRun()
     {
-        $this->initConfig();
-
         $process = new Process('php ' . ROOT_PATH . 'run.php --data=' . $this->dataDir . ' 2>&1');
         $process->run();
 
@@ -62,7 +62,8 @@ class FunctionalTest extends BaseTest
 
     public function testRunEmptyTable()
     {
-        $this->initConfig(function ($config) {
+        $config = $this->initConfig(function () {
+            $config = $this->defaultConfig;
             $tables = array_map(function ($table) {
                 $table['items'] = array_map(function ($item) {
                     $item['type'] = 'IGNORE';
@@ -75,7 +76,22 @@ class FunctionalTest extends BaseTest
             return $config;
         });
 
-        $process = new Process('php ' . ROOT_PATH . 'run.php --data=' . $this->dataDir . ' 2>&1');
+        $yaml = new Yaml();
+
+        foreach ($config['parameters']['tables'] as $table) {
+            // upload source files to S3 - mimic functionality of docker-runner
+            $manifestPath = $this->dataDir . '/in/tables/' . $table['tableId'] . '.csv.manifest';
+            $manifestData = $yaml->parse(file_get_contents($manifestPath));
+            $manifestData['columns'] = [];
+
+            unlink($manifestPath);
+            file_put_contents(
+                $manifestPath,
+                $yaml->dump($manifestData)
+            );
+        }
+
+        $process = new Process('php ' . ROOT_PATH . 'run.php --data=' . $this->dataDir);
         $process->run();
 
         $this->assertEquals(0, $process->getExitCode());
