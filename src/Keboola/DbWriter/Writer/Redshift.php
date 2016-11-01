@@ -136,12 +136,12 @@ class Redshift extends Writer implements WriterInterface
     public function create(array $table)
     {
         $sql = "CREATE TABLE {$this->escape($table['dbName'])} (";
-        $columns = $table['items'];
-        foreach ($columns as $k => $col) {
+
+        $columns = array_filter($table['items'], function ($item) {
+            return (strtolower($item['type']) !== 'ignore');
+        });
+        foreach ($columns as $col) {
             $type = strtoupper($col['type']);
-            if ($type == 'IGNORE') {
-                continue;
-            }
             if (!empty($col['size'])) {
                 $type .= "({$col['size']})";
             }
