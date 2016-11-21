@@ -5,9 +5,11 @@ services:
 
 before_install:
   - docker-compose -v
+  - docker-compose build tests
 
 script:
-  - docker-compose run -e CODECLIMATE_REPO_TOKEN=$CODECLIMATE_REPO_TOKEN app
+  - docker-compose run --rm tests ./vendor/bin/phpcs --standard=psr2 --ignore=vendor -n .
+  - docker-compose run --rm -e CODECLIMATE_REPO_TOKEN=$CODECLIMATE_REPO_TOKEN tests
 
 notifications:
   slack: $SLACK_INTEGRATION_DOMAIN:$SLACK_INTEGRATION_KEY

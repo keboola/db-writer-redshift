@@ -72,5 +72,14 @@ App is developed on localhost using TDD.
 
 1. Clone from repository: `git clone git@github.com:keboola/db-writer-redshift.git`
 2. Change directory: `cd db-writer-redshift`
-3. Install dependencies: `composer install --no-interaction`
-4. Run docker-compose, which will trigger phpunit: `docker-compose run app`
+3. Create `.env` file with variables:
+```
+STORAGE_API_TOKEN=
+REDSHIFT_DB_HOST=
+REDSHIFT_DB_PORT=5439
+REDSHIFT_DB_USER=
+REDSHIFT_DB_PASSWORD=
+REDSHIFT_DB_DATABASE=
+REDSHIFT_DB_SCHEMA=
+```
+4. Run docker-compose, which will trigger phpunit: `docker-compose run --rm app`

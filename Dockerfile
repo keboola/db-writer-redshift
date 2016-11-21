@@ -11,5 +11,5 @@ WORKDIR /code
 RUN echo "memory_limit = -1" >> /etc/php.ini
 RUN composer install --no-interaction
 
-ENTRYPOINT php ./run.php --data=/data
+CMD php ./run.php --data=/data
 
