@@ -57,3 +57,26 @@ parameters:
                     size: 255
                     nullable:
                     default:
+
+        -
+            tableId: empty
+            dbName: empty
+            export: true
+            incremental: true
+            primaryKey: [id]
+            items:
+                -
+                    name: id
+                    dbName: id
+                    type: int
+                    size:
+                    nullable:
+                    default:
+                -
+                    name: name
+                    dbName: name
+                    type: nvarchar
+                    size: 255
+                    nullable:
+                    default:
+

@@ -88,10 +88,19 @@ class Redshift extends Writer implements WriterInterface
     {
         $s3key = $s3info["bucket"] . "/" . $s3info["key"];
 
+        if (isset($s3info["isSliced"]) && $s3info["isSliced"] === true) {
+            // empty manifest handling
+            $manifest = $this->downloadManifest($s3info, "s3://{$s3key}");
+
+            if (!count($manifest['entries'])) {
+                return;
+            }
+        }
+
         // Generate copy command
         $command = "COPY \"{$table['dbName']}\" FROM 's3://{$s3key}'"
             . " CREDENTIALS 'aws_access_key_id={$s3info["credentials"]["access_key_id"]};aws_secret_access_key={$s3info["credentials"]["secret_access_key"]};token={$s3info["credentials"]["session_token"]}'"
-            . " REGION AS 'us-east-1' DELIMITER ',' CSV QUOTE '\"'"
+            . " REGION AS '{$s3info["region"]}' DELIMITER ',' CSV QUOTE '\"'"
             . " NULL AS 'NULL' ACCEPTANYDATE TRUNCATECOLUMNS";
 
         // Sliced files use manifest and no header
@@ -256,5 +265,24 @@ class Redshift extends Writer implements WriterInterface
     public function testConnection()
     {
         $this->db->query('select current_date')->execute();
+    }
+
+    private function downloadManifest($s3Info, $path)
+    {
+        $s3Client = new \Aws\S3\S3Client([
+            'credentials' => [
+                'key' => $s3Info['credentials']['access_key_id'],
+                'secret' => $s3Info['credentials']['secret_access_key'],
+                'token' =>  $s3Info['credentials']['session_token']
+            ],
+            'region' => $s3Info['region'],
+            'version' => '2006-03-01',
+        ]);
+        $path = parse_url($path);
+        $response = $s3Client->getObject([
+            'Bucket' => $path['host'],
+            'Key' => ltrim($path['path'], '/'),
+        ]);
+        return json_decode((string)$response['Body'], true);
     }
 }

@@ -133,6 +133,35 @@ class RedshiftTest extends BaseTest
         $this->assertFileEquals($this->getInputCsv($table['tableId']), $resFilename);
     }
 
+    public function testWriteEmpty()
+    {
+        $tables = $this->config['parameters']['tables'];
+        $tables = array_filter($tables, function($table) {
+            return $table['tableId'] === 'empty';
+        });
+
+        // empty table
+        $table = reset($tables);
+        $s3manifest = $this->loadDataToS3($table['tableId']);
+
+        $this->writer->drop($table['dbName']);
+        $this->writer->create($table);
+        $this->writer->writeFromS3($s3manifest, $table);
+
+        $conn = $this->writer->getConnection();
+        $stmt = $conn->query("SELECT * FROM {$table['dbName']} ORDER BY id ASC");
+        $res = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        $resFilename = tempnam('/tmp', 'db-wr-test-tmp');
+        $csv = new CsvFile($resFilename);
+        $csv->writeRow(["id","name"]);
+        foreach ($res as $row) {
+            $csv->writeRow($row);
+        }
+
+        $this->assertFileEquals($this->getInputCsv($table['tableId']), $resFilename);
+    }
+
     public function testUpsert()
     {
         $conn = $this->writer->getConnection();
