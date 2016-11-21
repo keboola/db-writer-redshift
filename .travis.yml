@@ -12,5 +12,12 @@ script:
   - docker-compose run --rm tests ./vendor/bin/phpcs --standard=psr2 --ignore=vendor -n .
   - docker-compose run --rm -e CODECLIMATE_REPO_TOKEN=$CODECLIMATE_REPO_TOKEN tests
 
+deploy:
+  provider: script
+  skip_cleanup: true
+  script: ./deploy.sh
+  on:
+    tags: true
+
 notifications:
   slack: $SLACK_INTEGRATION_DOMAIN:$SLACK_INTEGRATION_KEY
