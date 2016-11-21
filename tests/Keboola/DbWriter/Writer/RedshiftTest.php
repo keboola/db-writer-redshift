@@ -136,7 +136,7 @@ class RedshiftTest extends BaseTest
     public function testWriteEmpty()
     {
         $tables = $this->config['parameters']['tables'];
-        $tables = array_filter($tables, function($table) {
+        $tables = array_filter($tables, function ($table) {
             return $table['tableId'] === 'empty';
         });
 
@@ -201,5 +201,4 @@ class RedshiftTest extends BaseTest
 
         $this->assertFileEquals($expectedFilename, $resFilename);
     }
-
 }
