@@ -33,7 +33,9 @@ class Application extends BaseApplication
             $manifest = $this->getManifest($table['tableId']);
 
             $targetTableName = $table['dbName'];
-            $table['dbName'] .= $table['incremental']?'_temp_' . uniqid():'';
+            if ($table['incremental']) {
+                $table['dbName'] = $writer->generateTmpName($table['dbName']);
+            }
             $table['items'] = $this->reorderColumns($manifest['columns'], $table['items']);
 
             if (empty($table['items'])) {
@@ -50,6 +52,7 @@ class Application extends BaseApplication
                     if (!$writer->tableExists($targetTableName)) {
                         $destinationTable = $table;
                         $destinationTable['dbName'] = $targetTableName;
+                        $destinationTable['incremental'] = false;
                         $writer->create($destinationTable);
                     }
                     $writer->upsert($table, $targetTableName);
@@ -73,7 +76,9 @@ class Application extends BaseApplication
 
     private function getManifest($tableId)
     {
-        return (new Yaml())->parse(file_get_contents($this['parameters']['data_dir'] . "/in/tables/" . $tableId . ".csv.manifest"));
+        return (new Yaml())->parse(file_get_contents(
+            $this['parameters']['data_dir'] . "/in/tables/" . $tableId . ".csv.manifest"
+        ));
     }
 
     private function reorderColumns($manifestColumns, $items)

@@ -144,7 +144,11 @@ class Redshift extends Writer implements WriterInterface
 
     public function create(array $table)
     {
-        $sql = "CREATE TABLE {$this->escape($table['dbName'])} (";
+        $sql = sprintf(
+            "CREATE %s TABLE %s (",
+            $table['incremental']?'TEMPORARY':'',
+            $this->escape($table['dbName'])
+        );
 
         $columns = array_filter($table['items'], function ($item) {
             return (strtolower($item['type']) !== 'ignore');
@@ -284,5 +288,10 @@ class Redshift extends Writer implements WriterInterface
             'Key' => ltrim($path['path'], '/'),
         ]);
         return json_decode((string)$response['Body'], true);
+    }
+
+    public function generateTmpName($tableName)
+    {
+        return $tableName . '_temp_' . uniqid();
     }
 }
