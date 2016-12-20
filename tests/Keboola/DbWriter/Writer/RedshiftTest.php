@@ -90,6 +90,7 @@ class RedshiftTest extends BaseTest
         $tables = $this->config['parameters']['tables'];
 
         foreach ($tables as $table) {
+            $table['incremental'] = false;
             $this->writer->drop($table['dbName']);
             $this->writer->create($table);
         }
