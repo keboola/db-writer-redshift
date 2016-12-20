@@ -146,7 +146,7 @@ class Redshift extends Writer implements WriterInterface
     {
         $sql = sprintf(
             "CREATE %s TABLE %s (",
-            $table['incremental']?'TEMPORARY':'',
+            isset($table['incremental']) && $table['incremental'] ? 'TEMPORARY' : '',
             $this->escape($table['dbName'])
         );
 
