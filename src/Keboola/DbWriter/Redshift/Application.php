@@ -36,7 +36,7 @@ class Application extends BaseApplication
             if ($table['incremental']) {
                 $table['dbName'] = $writer->generateTmpName($table['dbName']);
             }
-            $table['items'] = $this->reorderColumns($manifest['columns'], $table['items']);
+            $table['items'] = $this->reorderColumnsFromManifest($manifest['columns'], $table['items']);
 
             if (empty($table['items'])) {
                 continue;
@@ -81,7 +81,7 @@ class Application extends BaseApplication
         ));
     }
 
-    private function reorderColumns($manifestColumns, $items)
+    private function reorderColumnsFromManifest($manifestColumns, $items)
     {
         $reordered = [];
         foreach ($manifestColumns as $manifestCol) {
