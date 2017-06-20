@@ -23,40 +23,23 @@ class Application extends BaseApplication
             return ($table['export']);
         });
 
-        /** @var Redshift $writer */
-        $writer = $this['writer'];
-        foreach ($tables as $table) {
-            if (!$writer->isTableValid($table)) {
-                continue;
-            }
+        foreach ($tables as $tableConfig) {
+            $manifest = $this->getManifest($tableConfig['tableId']);
+            $tableConfig['items'] = $this->reorderColumnsFromManifest($manifest['columns'], $tableConfig['items']);
 
-            $manifest = $this->getManifest($table['tableId']);
-
-            $targetTableName = $table['dbName'];
-            if ($table['incremental']) {
-                $table['dbName'] = $writer->generateTmpName($table['dbName']);
-            }
-            $table['items'] = $this->reorderColumnsFromManifest($manifest['columns'], $table['items']);
-
-            if (empty($table['items'])) {
+            if (empty($tableConfig['items'])) {
                 continue;
             }
 
             try {
-                $writer->drop($table['dbName']);
-                $writer->create($table);
-                $writer->writeFromS3($manifest['s3'], $table);
-
-                if ($table['incremental']) {
-                    // create target table if not exists
-                    if (!$writer->tableExists($targetTableName)) {
-                        $destinationTable = $table;
-                        $destinationTable['dbName'] = $targetTableName;
-                        $destinationTable['incremental'] = false;
-                        $writer->create($destinationTable);
-                    }
-                    $writer->upsert($table, $targetTableName);
+                if ($tableConfig['incremental']) {
+                    $this->loadIncremental($tableConfig, $manifest);
+                    $uploaded[] = $tableConfig['tableId'];
+                    continue;
                 }
+
+                $this->loadFull($tableConfig, $manifest);
+                $uploaded[] = $tableConfig['tableId'];
             } catch (\PDOException $e) {
                 throw new UserException($e->getMessage(), 0, $e, ["trace" => $e->getTraceAsString()]);
             } catch (UserException $e) {
@@ -64,14 +47,44 @@ class Application extends BaseApplication
             } catch (\Exception $e) {
                 throw new ApplicationException($e->getMessage(), 2, $e, ["trace" => $e->getTraceAsString()]);
             }
-
-            $uploaded[] = $table['tableId'];
         }
 
         return [
             'status' => 'success',
             'uploaded' => $uploaded
         ];
+    }
+
+    public function loadIncremental($tableConfig, $manifest)
+    {
+        /** @var Redshift $writer */
+        $writer = $this['writer'];
+
+        // write to staging table
+        $stageTable = $tableConfig;
+        $stageTable['dbName'] = $writer->generateTmpName($tableConfig['dbName']);
+
+        $writer->drop($stageTable['dbName']);
+        $writer->create($stageTable, ['temporary' => true]);
+        $writer->writeFromS3($manifest['s3'], $stageTable);
+
+        // create destination table if not exists
+        if (!$writer->tableExists($tableConfig['dbName'])) {
+            $writer->create($tableConfig);
+        }
+
+        // upsert from staging to destination table
+        $writer->upsert($stageTable, $tableConfig['dbName']);
+    }
+
+    public function loadFull($tableConfig, $manifest)
+    {
+        /** @var Redshift $writer */
+        $writer = $this['writer'];
+
+        $writer->drop($tableConfig['dbName']);
+        $writer->create($tableConfig);
+        $writer->writeFromS3($manifest['s3'], $tableConfig);
     }
 
     private function getManifest($tableId)

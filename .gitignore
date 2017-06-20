@@ -6,3 +6,4 @@ composer.phar
 runtests.sh
 /build
 .env
+tests.sh

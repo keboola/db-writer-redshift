@@ -28,30 +28,19 @@ class Redshift extends Writer implements WriterInterface
         'date', 'timestamp', 'timestamp without timezone'
     ];
 
-    private static $typesWithSize = [
-        'decimal', 'real', 'double precision', 'numeric',
-        'float', 'float4', 'float8',
-        'char', 'character', 'nchar', 'bpchar',
-        'varchar', 'character varying', 'nvarchar', 'text',
-    ];
-
-//    private static $numericTypes = [
-//        'int', 'int2', 'int4', 'int8',
-//        'smallint', 'integer', 'bigint',
-//        'decimal', 'real', 'double precision', 'numeric',
-//        'float', 'float4', 'float8',
-//    ];
-
     /** @var \PDO */
     protected $db;
 
     /** @var Logger */
     protected $logger;
 
+    protected $dbParams;
+
     public function __construct($dbParams, Logger $logger)
     {
         parent::__construct($dbParams, $logger);
         $this->logger = $logger;
+        $this->dbParams = $dbParams;
     }
 
     public function createConnection($dbParams)
@@ -112,9 +101,15 @@ class Redshift extends Writer implements WriterInterface
 
         $command .= " GZIP;";
 
+        $this->logger->info('Executing COPY command');
+
         try {
-            $this->db->exec($command);
+            $this->execQuery($command);
         } catch (\PDOException $e) {
+            $this->logger->err(sprintf('Write failed: %s', $e->getMessage()), [
+                'exception' => $e
+            ]);
+
             $query = $this->db->query("SELECT * FROM stl_load_errors WHERE query = pg_last_query_id();");
             $result = $query->fetchAll();
             $params = [
@@ -127,6 +122,10 @@ class Redshift extends Writer implements WriterInterface
                 $message = "Query failed: " . $e->getMessage();
             }
             throw new UserException($message, 0, $e, $params);
+        } catch (\Exception $e) {
+            $this->logger->err(sprintf('Write failed: %s', $e->getMessage()), [
+                'exception' => $e
+            ]);
         }
     }
 
@@ -139,14 +138,14 @@ class Redshift extends Writer implements WriterInterface
 
     public function drop($tableName)
     {
-        $this->db->exec(sprintf("DROP TABLE IF EXISTS %s;", $this->escape($tableName)));
+        $this->execQuery(sprintf("DROP TABLE IF EXISTS %s;", $this->escape($tableName)));
     }
 
-    public function create(array $table)
+    public function create(array $table, $options = [])
     {
         $sql = sprintf(
             "CREATE %s TABLE %s (",
-            isset($table['incremental']) && $table['incremental'] ? 'TEMPORARY' : '',
+            isset($options['temporary']) && $options['temporary'] ? 'TEMPORARY' : '',
             $this->escape($table['dbName'])
         );
 
@@ -240,10 +239,59 @@ class Redshift extends Writer implements WriterInterface
         return !empty($res);
     }
 
+    /**
+     * @param $query
+     * @return int|null
+     * @throws UserException
+     */
     private function execQuery($query)
     {
-        $this->logger->info(sprintf("Executing query '%s'", $query));
-        $this->db->exec($query);
+        // remove credentials
+        $queryToLog = preg_replace(
+            '/aws_access_key_id=.*;aws_secret_access_key=.*/',
+            'aws_access_key_id=***;aws_access_key_id=***',
+            $query
+        );
+
+        $this->logger->info(sprintf("Executing query: '%s'", $queryToLog));
+
+        $tries = 0;
+        $maxTries = 3;
+        $exception = null;
+
+        while ($tries < $maxTries) {
+            $exception = null;
+            try {
+                return $this->db->exec($query);
+            } catch (\PDOException $e) {
+                $exception = $this->handleDbError($e, $queryToLog);
+                $this->logger->info(sprintf('%s. Retrying... [%dx]', $exception->getMessage(), $tries + 1));
+            } catch (\ErrorException $e) {
+                $exception = $this->handleDbError($e, $queryToLog);
+                $this->logger->info(sprintf('%s. Retrying... [%dx]', $exception->getMessage(), $tries + 1));
+            }
+            sleep(pow($tries, 2));
+            $this->db = $this->createConnection($this->dbParams);
+            $tries++;
+        }
+
+        if ($exception) {
+            throw $exception;
+        }
+
+        return null;
+    }
+
+    private function handleDbError(\Exception $e, $query = '')
+    {
+        $message = sprintf('DB query failed: %s', $e->getMessage());
+        $exception = new UserException($message, 0, $e, ['query' => $query]);
+
+        try {
+            $this->db = $this->createConnection($this->dbParams);
+        } catch (\Exception $e) {
+        };
+        return $exception;
     }
 
     public function showTables($dbName)
