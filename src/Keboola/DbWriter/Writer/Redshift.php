@@ -58,7 +58,7 @@ class Redshift extends Writer implements WriterInterface
         }
 
         $port = isset($dbParams['port']) ? $dbParams['port'] : '5439';
-        $dsn = "pgsql:host={$dbParams['host']};port={$port};dbname={$dbParams["database"]}";
+        $dsn = "pgsql:host={$dbParams['host']};port={$port};dbname={$dbParams["database"]};keepalives=1;keepalives_idle=60";
 
         $this->logger->info(
             "Connecting to DSN '" . $dsn . "'...",
