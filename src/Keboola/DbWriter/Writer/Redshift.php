@@ -126,6 +126,7 @@ class Redshift extends Writer implements WriterInterface
             $this->logger->err(sprintf('Write failed: %s', $e->getMessage()), [
                 'exception' => $e
             ]);
+            throw $e;
         }
     }
 
