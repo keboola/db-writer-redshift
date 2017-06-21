@@ -11,8 +11,8 @@ namespace Keboola\DbWriter\Redshift\Tests;
 use Keboola\DbWriter\Redshift\Test\S3Loader;
 use Keboola\DbWriter\Test\BaseTest;
 use Keboola\StorageApi\Client;
+use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Process\Process;
-use Symfony\Component\Yaml\Yaml;
 
 class FunctionalTest extends BaseTest
 {
@@ -20,44 +20,19 @@ class FunctionalTest extends BaseTest
 
     protected $dataDir = ROOT_PATH . 'tests/data/functional';
 
+    protected $tmpDataDir = '/tmp/wr-db-redshift/data';
+
     protected $defaultConfig;
 
-    public function setUp()
+    public function __construct($name, array $data, $dataName)
     {
-        // cleanup & init
-        $this->defaultConfig = $this->initConfig();
-        $writer = $this->getWriter($this->defaultConfig['parameters']);
-        $s3Loader = new S3Loader(
-            $this->dataDir,
-            new Client([
-                'token' => getenv('STORAGE_API_TOKEN')
-            ])
-        );
-
-        $yaml = new Yaml();
-        foreach ($this->defaultConfig['parameters']['tables'] as $table) {
-            // clean destination DB
-            $writer->drop($table['dbName']);
-
-            // upload source files to S3 - mimic functionality of docker-runner
-            $manifestPath = $this->dataDir . '/in/tables/' . $table['tableId'] . '.csv.manifest';
-            $manifestData = $yaml->parse(file_get_contents($manifestPath));
-            $manifestData['s3'] = $s3Loader->upload($table['tableId']);
-
-            unlink($manifestPath);
-            file_put_contents(
-                $manifestPath,
-                $yaml->dump($manifestData)
-            );
-        }
+        parent::__construct($name, $data, $dataName);
     }
 
     public function testRun()
     {
-        $process = new Process('php ' . ROOT_PATH . 'run.php --data=' . $this->dataDir . ' 2>&1');
-        $process->run();
-
-        $this->assertEquals(0, $process->getExitCode());
+        $this->prepareDataFiles($this->initConfig());
+        $this->runProcess();
     }
 
     public function testRunEmptyTable()
@@ -75,39 +50,33 @@ class FunctionalTest extends BaseTest
 
             return $config;
         });
+        $this->prepareDataFiles($config);
 
-        $yaml = new Yaml();
-
+        // overwrite manifest with no columns
         foreach ($config['parameters']['tables'] as $table) {
-            // upload source files to S3 - mimic functionality of docker-runner
             $manifestPath = $this->dataDir . '/in/tables/' . $table['tableId'] . '.csv.manifest';
-            $manifestData = $yaml->parse(file_get_contents($manifestPath));
+            $manifestData = json_decode(file_get_contents($manifestPath), true);
             $manifestData['columns'] = [];
 
-            unlink($manifestPath);
+            @unlink($manifestPath);
             file_put_contents(
                 $manifestPath,
-                $yaml->dump($manifestData)
+                json_encode($manifestData)
             );
         }
 
-        $process = new Process('php ' . ROOT_PATH . 'run.php --data=' . $this->dataDir);
-        $process->run();
-
-        $this->assertEquals(0, $process->getExitCode());
+        $this->runProcess();
     }
 
     public function testTestConnection()
     {
-        $this->initConfig(function ($config) {
+        $config = $this->initConfig(function ($config) {
             $config['action'] = 'testConnection';
             return $config;
         });
+        $this->prepareDataFiles($config);
 
-        $process = new Process('php ' . ROOT_PATH . 'run.php --data=' . $this->dataDir . ' 2>&1');
-        $process->run();
-
-        $this->assertEquals(0, $process->getExitCode());
+        $process = $this->runProcess();
 
         $data = json_decode($process->getOutput(), true);
 
@@ -117,9 +86,9 @@ class FunctionalTest extends BaseTest
 
     private function initConfig(callable $callback = null)
     {
-        $yaml = new Yaml();
-        $configPath = $this->dataDir . '/config.yml';
-        $config = $yaml->parse(file_get_contents($configPath));
+        $srcConfigPath = $this->dataDir . '/config.json';
+        $dstConfigPath = $this->tmpDataDir . '/config.json';
+        $config = json_decode(file_get_contents($srcConfigPath), true);
 
         $config['parameters']['writer_class'] = self::DRIVER;
         $config['parameters']['db']['user'] = $this->getEnv(self::DRIVER, 'DB_USER', true);
@@ -135,9 +104,54 @@ class FunctionalTest extends BaseTest
             $config = $callback($config);
         }
 
-        @unlink($configPath);
-        file_put_contents($configPath, $yaml->dump($config));
+        @unlink($dstConfigPath);
+        file_put_contents($dstConfigPath, json_encode($config));
 
         return $config;
+    }
+
+    private function prepareDataFiles($config)
+    {
+        $writer = $this->getWriter($config['parameters']);
+        $s3Loader = new S3Loader(
+            $this->tmpDataDir,
+            new Client([
+                'token' => getenv('STORAGE_API_TOKEN')
+            ])
+        );
+
+        $fs = new Filesystem();
+        if (file_exists($this->tmpDataDir)) {
+            $fs->remove($this->tmpDataDir);
+        }
+        $fs->mkdir($this->tmpDataDir . '/in/tables');
+
+        foreach ($config['parameters']['tables'] as $table) {
+            // clean destination DB
+            $writer->drop($table['dbName']);
+
+            // upload source files to S3 - mimic functionality of docker-runner
+            $srcPath = $this->dataDir . '/in/tables/' . $table['tableId'] . '.csv';
+            $dstPath = $this->tmpDataDir . '/in/tables/' . $table['tableId'] . '.csv';
+            $fs->copy($srcPath, $dstPath);
+
+            $manifestData = json_decode(file_get_contents($srcPath . '.manifest'), true);
+            $manifestData['s3'] = $s3Loader->upload($table['tableId']);
+
+            file_put_contents(
+                $dstPath . '.manifest',
+                json_encode($manifestData)
+            );
+        }
+    }
+
+    protected function runProcess()
+    {
+        $process = new Process('php ' . ROOT_PATH . 'run.php --data=' . $this->tmpDataDir . ' 2>&1');
+        $process->run();
+
+        $this->assertEquals(0, $process->getExitCode());
+
+        return $process;
     }
 }

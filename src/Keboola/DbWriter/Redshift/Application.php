@@ -89,9 +89,9 @@ class Application extends BaseApplication
 
     private function getManifest($tableId)
     {
-        return (new Yaml())->parse(file_get_contents(
+        return json_decode(file_get_contents(
             $this['parameters']['data_dir'] . "/in/tables/" . $tableId . ".csv.manifest"
-        ));
+        ), true);
     }
 
     private function reorderColumnsFromManifest($manifestColumns, $items)
