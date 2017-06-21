@@ -11,18 +11,20 @@
         }
     ],
     "require": {
-        "php": ">=5.6",
+        "php": "^7.0",
         "keboola/db-writer-common": "^2.2"
     },
     "require-dev": {
-        "phpunit/phpunit": "4.6.*",
+        "phpunit/phpunit": "^5.3",
         "squizlabs/php_codesniffer": "^2.6",
         "codeclimate/php-test-reporter": "^0.3",
-        "keboola/storage-api-client": "^4.14"
+        "keboola/storage-api-client": "^4.14",
+        "phpstan/phpstan": "^0.7.0"
     },
     "autoload": {
         "psr-4": {
-            "Keboola\\": "src/Keboola/"
+            "Keboola\\": ["src/Keboola", "tests/Keboola"],
+            "Keboola\\DbWriter\\Redshift\\Tests\\": "tests/"
         }
     }
 }

@@ -6,7 +6,7 @@
  * Time: 17:20
  */
 
-namespace Keboola\DbWriter\Writer\Redshift\Tests;
+namespace Keboola\DbWriter\Redshift\Tests;
 
 use Keboola\DbWriter\Redshift\Test\S3Loader;
 use Keboola\DbWriter\Test\BaseTest;

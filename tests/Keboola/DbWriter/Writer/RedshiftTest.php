@@ -12,7 +12,6 @@ use Keboola\Csv\CsvFile;
 use Keboola\DbWriter\Redshift\Test\S3Loader;
 use Keboola\DbWriter\Test\BaseTest;
 use Keboola\StorageApi\Client;
-use Keboola\StorageApi\Options\GetFileOptions;
 
 class RedshiftTest extends BaseTest
 {
