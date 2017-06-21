@@ -1,2 +1,1 @@
-id: simple_increment
-columns: [id, name, glasses]
+{"id":"simple_increment","columns":[]}
