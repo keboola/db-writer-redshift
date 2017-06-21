@@ -141,13 +141,9 @@ class Redshift extends Writer implements WriterInterface
         $this->execQuery(sprintf("DROP TABLE IF EXISTS %s;", $this->escape($tableName)));
     }
 
-    public function create(array $table, $options = [])
+    public function create(array $table)
     {
-        $sql = sprintf(
-            "CREATE %s TABLE %s (",
-            isset($options['temporary']) && $options['temporary'] ? 'TEMPORARY' : '',
-            $this->escape($table['dbName'])
-        );
+        $sql = sprintf("CREATE TABLE %s (", $this->escape($table['dbName']));
 
         $columns = array_filter($table['items'], function ($item) {
             return (strtolower($item['type']) !== 'ignore');
