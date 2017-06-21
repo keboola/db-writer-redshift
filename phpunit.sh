@@ -30,9 +30,8 @@ YdFA7sjJoFhItY1yEx90q8IBVAcBU4hRE7i/27kfnCImVc3mK1A=
 
 export REDSHIFT_DB_SSH_KEY_PUBLIC="ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC2tGpPt3qrI/G4QOJeP7kA2ihC9U/cY42GNZuedrKocNGGQBgvjGNRP1kCexXeaJ25KUti+tFbPjVrdt6xhqALiwUupSYFusaAVEDcwl6KLMGAOHWD0X7hdraL3w4ATyNTBvowyc9ZvsollNyTUqDWxN2USTfk89Xd+S2noAfoCUJd4fMEmBeAAqlYTajHGKSKYcRGokxci7dyaXoHEQgsd0giZWIZATNUkWTV36bTnGjMxz4pK6LHNglQRNO4GpxQI5Bmie60gVcOIQAhmbrTq9bwcoLq6SGBOUO/Vr6ZnLcI8h4W50HSNUeXKtFMeNMgzDgS8x4Ow0XLEpjujRGh miroslavcillik@Miroslavs-MacBook-Air.local"
 
-composer selfupdate
-composer install -n
-
 export ROOT_PATH="/code";
 
-./vendor/bin/phpunit
+./vendor/bin/phpcs --standard=psr2 --ignore=vendor -n . \
+&& ./vendor/bin/phpstan analyse src tests \
+&& ./vendor/bin/phpunit

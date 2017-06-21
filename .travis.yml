@@ -9,7 +9,6 @@ before_install:
   - docker-compose run --rm tests composer install
 
 script:
-  - docker-compose run --rm tests ./vendor/bin/phpcs --standard=psr2 --ignore=vendor -n .
   - docker-compose run --rm -e CODECLIMATE_REPO_TOKEN=$CODECLIMATE_REPO_TOKEN tests
 
 deploy:
