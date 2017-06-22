@@ -98,36 +98,9 @@ class Redshift extends Writer implements WriterInterface
         } else {
             $command .= " IGNOREHEADER 1";
         }
-
         $command .= " GZIP;";
 
-        $this->logger->info('Executing COPY command');
-
-        try {
-            $this->execQuery($command);
-        } catch (\PDOException $e) {
-            $this->logger->err(sprintf('Write failed: %s', $e->getMessage()), [
-                'exception' => $e
-            ]);
-
-            $query = $this->db->query("SELECT * FROM stl_load_errors WHERE query = pg_last_query_id();");
-            $result = $query->fetchAll();
-            $params = [
-                "query" => $command
-            ];
-            if (count($result)) {
-                $message = "Table '{$table['dbName']}', column '" . trim($result[0]["colname"]) . "', line {$result[0]["line_number"]}: ". trim($result[0]["err_reason"]);
-                $params["redshift_errors"] = $result;
-            } else {
-                $message = "Query failed: " . $e->getMessage();
-            }
-            throw new UserException($message, 0, $e, $params);
-        } catch (\Exception $e) {
-            $this->logger->err(sprintf('Write failed: %s', $e->getMessage()), [
-                'exception' => $e
-            ]);
-            throw $e;
-        }
+        $this->execQuery($command);
     }
 
     public function isTableValid(array $table, $ignoreExport = false)
@@ -260,15 +233,13 @@ class Redshift extends Writer implements WriterInterface
             $exception = null;
             try {
                 return $this->db->exec($query);
-            } catch (\PDOException $e) {
-                $exception = $this->handleDbError($e, $queryToLog);
-                $this->logger->info(sprintf('%s. Retrying... [%dx]', $exception->getMessage(), $tries + 1));
-            } catch (\ErrorException $e) {
-                $exception = $this->handleDbError($e, $queryToLog);
-                $this->logger->info(sprintf('%s. Retrying... [%dx]', $exception->getMessage(), $tries + 1));
+            } catch (\PDOException | \ErrorException $e) {
+                $exception = $this->errorsToException($query);
+                $this->logger->error($exception->getMessage(), $exception->getData());
+                $this->reconnect();
+                $this->logger->info(sprintf('%s. Retrying... [%dx]', $e->getMessage(), $tries + 1));
             }
             sleep(pow($tries, 2));
-            $this->db = $this->createConnection($this->dbParams);
             $tries++;
         }
 
@@ -279,16 +250,37 @@ class Redshift extends Writer implements WriterInterface
         return null;
     }
 
-    private function handleDbError(\Exception $e, $query = '')
+    private function getErrors()
     {
-        $message = sprintf('DB query failed: %s', $e->getMessage());
-        $exception = new UserException($message, 0, $e, ['query' => $query]);
+        $query = $this->db->query("SELECT * FROM stl_load_errors WHERE query = pg_last_query_id();");
+        return $query->fetchAll();
+    }
 
+    private function errorsToException($query)
+    {
+        $errors = $this->getErrors();
+        $message = '';
+        foreach ($errors as $error) {
+            $message .= sprintf(
+                "Column '%s', line %s: %s",
+                trim($error['colname']),
+                $error['line_number'],
+                trim($error["err_reason"])
+            );
+        }
+
+        return new UserException($message, 0, null, [
+            'query' => $query,
+            'redshift_errors' => $errors
+        ]);
+    }
+
+    private function reconnect()
+    {
         try {
             $this->db = $this->createConnection($this->dbParams);
         } catch (\Exception $e) {
         };
-        return $exception;
     }
 
     public function showTables($dbName)

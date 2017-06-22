@@ -1,1 +1,4 @@
-{"id":"special","columns":[]}
+{
+    "id": "special",
+    "columns": ["col1", "col2"]
+}

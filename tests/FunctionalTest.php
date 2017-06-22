@@ -8,6 +8,7 @@
 
 namespace Keboola\DbWriter\Redshift\Tests;
 
+use Keboola\DbWriter\Exception\UserException;
 use Keboola\DbWriter\Redshift\Test\S3Loader;
 use Keboola\DbWriter\Test\BaseTest;
 use Keboola\StorageApi\Client;
@@ -34,7 +35,8 @@ class FunctionalTest extends BaseTest
     public function testRun()
     {
         $this->prepareDataFiles($this->initConfig());
-        $this->runProcess();
+        $process = $this->runProcess();
+        $this->assertEquals(0, $process->getExitCode(), $process->getOutput());
     }
 
     public function testRunEmptyTable()
@@ -70,7 +72,70 @@ class FunctionalTest extends BaseTest
             );
         }
 
-        $this->runProcess();
+        $process = $this->runProcess();
+        $this->assertEquals(0, $process->getExitCode(), $process->getOutput());
+    }
+
+    public function testBadDataType()
+    {
+//        $this->expectException('Keboola\\DbWriter\\Exception\\UserException');
+//        $this->expectExceptionMessage();
+
+        $config = $this->initConfig(function ($config) {
+            $config['parameters']['tables'] = [[
+                "tableId" => "bad_type",
+                "dbName" => "bad_type",
+                "export" => true,
+                "incremental" => false,
+                "primaryKey" => [
+                    "id"
+                ],
+                "items" => [
+                    [
+                        "name" => "id",
+                        "dbName" => "id",
+                        "type" => "int",
+                        "size" => null,
+                        "nullable" => null,
+                        "default" => null
+                    ],
+                    [
+                        "name" => "name",
+                        "dbName" => "name",
+                        "type" => "nvarchar",
+                        "size" => 255,
+                        "nullable" => null,
+                        "default" => null
+                    ],
+                    [
+                        "name" => "glasses",
+                        "dbName" => "glasses",
+                        "type" => "nvarchar",
+                        "size" => 255,
+                        "nullable" => null,
+                        "default" => null
+                    ],
+                    [
+                        "name" => "created",
+                        "dbName" => "created",
+                        "type" => "date",
+                        "size" => "",
+                        "nullable" => null,
+                        "default" => null
+                    ]
+                ]
+            ]];
+            return $config;
+        });
+
+        $this->prepareDataFiles($config);
+
+        $process = $this->runProcess();
+        $this->assertEquals(1, $process->getExitCode(), $process->getOutput());
+        $this->assertContains(
+            "Column 'created', line 3: Invalid Date Format - length must be 10 or more",
+            $process->getOutput()
+        );
     }
 
     public function testTestConnection()
@@ -82,9 +147,9 @@ class FunctionalTest extends BaseTest
         $this->prepareDataFiles($config);
 
         $process = $this->runProcess();
-
         $data = json_decode($process->getOutput(), true);
 
+        $this->assertEquals(0, $process->getExitCode(), $process->getOutput());
         $this->assertArrayHasKey('status', $data);
         $this->assertEquals('success', $data['status']);
     }
@@ -150,8 +215,6 @@ class FunctionalTest extends BaseTest
     {
         $process = new Process('php ' . ROOT_PATH . 'run.php --data=' . $this->tmpDataDir . ' 2>&1');
         $process->run();
-
-        $this->assertEquals(0, $process->getExitCode(), $process->getOutput());
 
         return $process;
     }

@@ -1,1 +1,4 @@
-{"id":"simple","columns":[]}
+{
+    "id": "simple",
+    "columns": ["id", "name", "glasses"]
+}

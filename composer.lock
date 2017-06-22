@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "content-hash": "b864370536dddc9f263cd8c1f94d619f",
+    "content-hash": "e8be1cdb84671a3153fcfe272780a6d5",
     "packages": [
         {
             "name": "keboola/csv",
@@ -519,16 +519,16 @@
     "packages-dev": [
         {
             "name": "aws/aws-sdk-php",
-            "version": "3.29.9",
+            "version": "3.30.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/aws/aws-sdk-php.git",
-                "reference": "fdb015e0905fccf25b35a78e6fda02673df97dc8"
+                "reference": "c84ce7a758ce3bbe8ff54abfa2e0646941fe5fc4"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/aws/aws-sdk-php/zipball/fdb015e0905fccf25b35a78e6fda02673df97dc8",
-                "reference": "fdb015e0905fccf25b35a78e6fda02673df97dc8",
+                "url": "https://api.github.com/repos/aws/aws-sdk-php/zipball/c84ce7a758ce3bbe8ff54abfa2e0646941fe5fc4",
+                "reference": "c84ce7a758ce3bbe8ff54abfa2e0646941fe5fc4",
                 "shasum": ""
             },
             "require": {
@@ -595,7 +595,7 @@
                 "s3",
                 "sdk"
             ],
-            "time": "2017-06-20T20:54:58+00:00"
+            "time": "2017-06-21T21:38:23+00:00"
         },
         {
             "name": "codeclimate/php-test-reporter",
@@ -3418,7 +3418,7 @@
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {
-        "php": "^7.0"
+        "php": "^7.1"
     },
     "platform-dev": []
 }
