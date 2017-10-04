@@ -12,7 +12,7 @@ before_install:
 script:
   - docker pull quay.io/keboola/developer-portal-cli-v2:latest
   - export REPOSITORY=`docker run --rm -e KBC_DEVELOPERPORTAL_USERNAME -e KBC_DEVELOPERPORTAL_PASSWORD quay.io/keboola/developer-portal-cli-v2:latest ecr:get-repository keboola keboola.wr-redshift-v2`
-  - docker tag $KBC_APP_REPOSITORY:latest $REPOSITORY:master
+  - docker tag keboola/db-writer-redshift:latest $REPOSITORY:master
   - eval $(docker run --rm -e KBC_DEVELOPERPORTAL_USERNAME -e KBC_DEVELOPERPORTAL_PASSWORD quay.io/keboola/developer-portal-cli-v2:latest ecr:get-login keboola keboola.wr-redshift-v2)
   - docker push $REPOSITORY:master
   # Run live test job on new master image
