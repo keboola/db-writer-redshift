@@ -82,4 +82,4 @@ REDSHIFT_DB_PASSWORD=
 REDSHIFT_DB_DATABASE=
 REDSHIFT_DB_SCHEMA=
 ```
-4. Run docker-compose, which will trigger phpunit: `docker-compose run --rm app`
+4. Run docker-compose, which will trigger phpunit: `docker-compose run --rm tests`
