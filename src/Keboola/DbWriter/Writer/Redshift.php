@@ -204,7 +204,10 @@ class Redshift extends Writer implements WriterInterface
 
     public function tableExists($tableName)
     {
-        $stmt = $this->db->query(sprintf("SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = '%s'", $tableName));
+        $stmt = $this->db->query(sprintf(
+            "SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = '%s'",
+            strtolower($tableName)
+        ));
         $res = $stmt->fetchAll();
         return !empty($res);
     }
