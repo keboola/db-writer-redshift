@@ -8,7 +8,6 @@
 
 namespace Keboola\DbWriter\Redshift\Tests;
 
-use Keboola\DbWriter\Exception\UserException;
 use Keboola\DbWriter\Redshift\Test\S3Loader;
 use Keboola\DbWriter\Test\BaseTest;
 use Keboola\StorageApi\Client;
@@ -39,48 +38,8 @@ class FunctionalTest extends BaseTest
         $this->assertEquals(0, $process->getExitCode(), $process->getOutput());
     }
 
-    public function testRunEmptyTable()
-    {
-        $config = $this->initConfig(function ($config) {
-            $tables = array_map(function ($table) {
-                $table['items'] = array_map(function ($item) {
-                    $item['type'] = 'IGNORE';
-                    return $item;
-                }, $table['items']);
-                return $table;
-            }, $config['parameters']['tables']);
-            $config['parameters']['tables'] = $tables;
-
-            return $config;
-        });
-        $this->prepareDataFiles($config);
-
-        // overwrite manifest with no columns
-        $fs = new Filesystem();
-        foreach ($config['parameters']['tables'] as $table) {
-            // upload source files to S3 - mimic functionality of docker-runner
-            $srcPath = $this->dataDir . '/in/tables/' . $table['tableId'] . '.csv';
-            $dstPath = $this->tmpDataDir . '/in/tables/' . $table['tableId'] . '.csv';
-            $fs->copy($srcPath, $dstPath);
-
-            $manifestData = json_decode(file_get_contents($srcPath . '.manifest'), true);
-            $manifestData['columns'] = [];
-
-            file_put_contents(
-                $dstPath . '.manifest',
-                json_encode($manifestData)
-            );
-        }
-
-        $process = $this->runProcess();
-        $this->assertEquals(0, $process->getExitCode(), $process->getOutput());
-    }
-
     public function testBadDataType()
     {
-//        $this->expectException('Keboola\\DbWriter\\Exception\\UserException');
-//        $this->expectExceptionMessage();
-
         $config = $this->initConfig(function ($config) {
             $config['parameters']['tables'] = [[
                 "tableId" => "bad_type",
@@ -125,6 +84,16 @@ class FunctionalTest extends BaseTest
                     ]
                 ]
             ]];
+            $config['storage']['input']['tables'][] = [
+                'source' => 'bad_type',
+                'destination' => 'bad_type.csv',
+                'columns' => [
+                    'id',
+                    'name',
+                    'glasses',
+                    'created'
+                ]
+            ];
             return $config;
         });
 
@@ -134,6 +103,28 @@ class FunctionalTest extends BaseTest
         $this->assertEquals(1, $process->getExitCode(), $process->getOutput());
         $this->assertContains(
             "Column 'created', line 3: Invalid Date Format - length must be 10 or more",
+            $process->getOutput()
+        );
+    }
+
+    public function testWrongColumnOrder()
+    {
+        // shuffle columns order
+        $config = $this->initConfig(function ($config) {
+            $col1 =  array_shift($config['parameters']['tables'][0]['items']);
+            array_push($config['parameters']['tables'][0]['items'], $col1);
+
+            $col1 =  array_shift($config['storage']['input']['tables'][0]['columns']);
+            array_push($config['storage']['input']['tables'][0]['columns'], $col1);
+
+            return $config;
+        });
+        $this->prepareDataFiles($config);
+
+        $process = $this->runProcess();
+        $this->assertEquals(1, $process->getExitCode(), $process->getOutput());
+        $this->assertContains(
+            'Columns in configuration of table "simple" does not match columns in Storage. Edit and re-save the configuration to fix the problem.',
             $process->getOutput()
         );
     }
@@ -187,7 +178,8 @@ class FunctionalTest extends BaseTest
         $s3Loader = new S3Loader(
             $this->tmpDataDir,
             new Client([
-                'token' => getenv('STORAGE_API_TOKEN')
+                'url' => 'https://connection.keboola.com',
+                'token' => getenv('STORAGE_API_TOKEN'),
             ])
         );
 
@@ -214,6 +206,7 @@ class FunctionalTest extends BaseTest
     protected function runProcess()
     {
         $process = new Process('php ' . ROOT_PATH . 'run.php --data=' . $this->tmpDataDir . ' 2>&1');
+        $process->setTimeout(300);
         $process->run();
 
         return $process;
