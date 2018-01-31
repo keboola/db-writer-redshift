@@ -111,12 +111,8 @@ class FunctionalTest extends BaseTest
     {
         // shuffle columns order
         $config = $this->initConfig(function ($config) {
-            $col1 =  array_shift($config['parameters']['tables'][0]['items']);
-            array_push($config['parameters']['tables'][0]['items'], $col1);
-
             $col1 =  array_shift($config['storage']['input']['tables'][0]['columns']);
             array_push($config['storage']['input']['tables'][0]['columns'], $col1);
-
             return $config;
         });
         $this->prepareDataFiles($config);
@@ -124,7 +120,7 @@ class FunctionalTest extends BaseTest
         $process = $this->runProcess();
         $this->assertEquals(1, $process->getExitCode(), $process->getOutput());
         $this->assertContains(
-            'Columns in configuration of table "simple" does not match columns in Storage. Edit and re-save the configuration to fix the problem.',
+            'Columns in configuration of table "simple" does not match with input mapping. Edit and re-save the configuration to fix the problem.',
             $process->getOutput()
         );
     }

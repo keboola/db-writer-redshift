@@ -58,7 +58,7 @@ class Application
 
         foreach ($tables as $tableConfig) {
             $manifest = $this->getManifest($tableConfig['tableId']);
-            $this->checkColumns($this->getInputMapping($tableConfig['tableId']), $manifest);
+            $this->checkColumns($tableConfig);
 
             if (empty($tableConfig['items'])) {
                 continue;
@@ -136,32 +136,34 @@ class Application
         }
 
         throw new UserException(sprintf(
-            'Configuration mismatch. Table "%s" is missing from input mapping. Reloading the page and re-saving table configuration may fix the problem.',
+            'Table "%s" is missing from input mapping. Reloading the page and re-saving configuration may fix the problem.',
             $tableId
         ));
     }
 
     /**
-     * Check if input mapping is really aligned with exported CSV file
+     * Check if input mapping is aligned with table config
      *
-     * @param $inputMapping
-     * @param $manifest
+     * @param $tableConfig
      * @throws UserException
      */
-    private function checkColumns($inputMapping, $manifest)
+    private function checkColumns($tableConfig)
     {
+        $inputMapping = $this->getInputMapping($tableConfig['tableId']);
         $mappingColumns = $inputMapping['columns'];
-        $manifestColumns = $manifest['columns'];
+        $tableColumns = array_map(function ($item) {
+            return $item['name'];
+        }, $tableConfig['items']);
 
-        $intersect = array_intersect($mappingColumns, $manifestColumns);
+        $intersect = array_intersect($mappingColumns, $tableColumns);
         $diff = array_merge(
             array_diff_assoc($mappingColumns, $intersect),
-            array_diff_assoc($manifestColumns, $intersect)
+            array_diff_assoc($tableColumns, $intersect)
         );
 
         if (!empty($diff)) {
             throw new UserException(sprintf(
-                'Columns in configuration of table "%s" does not match columns in Storage. Edit and re-save the configuration to fix the problem.',
+                'Columns in configuration of table "%s" does not match with input mapping. Edit and re-save the configuration to fix the problem.',
                 $inputMapping['source']
             ));
         }
