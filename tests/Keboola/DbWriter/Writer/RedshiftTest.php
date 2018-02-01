@@ -42,7 +42,8 @@ class RedshiftTest extends BaseTest
         }
 
         $this->storageApi = new Client([
-            'token' => getenv('STORAGE_API_TOKEN')
+            'url' => getenv('STORAGE_API_URL'),
+            'token' => getenv('STORAGE_API_TOKEN'),
         ]);
 
         $bucketId = 'in.c-test-wr-db-redshift';

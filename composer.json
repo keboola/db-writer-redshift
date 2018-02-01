@@ -18,7 +18,7 @@
         "phpunit/phpunit": "^5.3",
         "squizlabs/php_codesniffer": "^2.6",
         "codeclimate/php-test-reporter": "^0.3",
-        "keboola/storage-api-client": "^4.14",
+        "keboola/storage-api-client": "^8.0",
         "phpstan/phpstan": "^0.7.0"
     },
     "autoload": {

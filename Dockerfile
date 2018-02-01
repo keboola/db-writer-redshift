@@ -3,7 +3,7 @@ MAINTAINER Miroslav Cillik <miro@keboola.com>
 
 # Dependencies
 RUN apt-get update
-RUN apt-get install -y wget curl make git bzip2 time libzip-dev zip unzip libssl1.0.0 openssl vim libpq-dev
+RUN apt-get install -y wget curl make git bzip2 time libzip-dev zip unzip openssl vim libpq-dev
 RUN docker-php-source extract \
     && docker-php-ext-configure pgsql -with-pgsql=/usr/local/pgsql \
     && docker-php-ext-install pdo pdo_pgsql pgsql \

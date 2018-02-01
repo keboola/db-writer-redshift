@@ -26,12 +26,11 @@ try {
     $config['parameters']['writer_class'] = 'Redshift';
 
     $action = isset($config['action']) ? $config['action'] : $action;
+    if ($action !== 'run') {
+        $logger->setHandlers(array(new NullHandler(Logger::INFO)));
+    }
 
     $app = new Application($config, $logger, new ConfigDefinition());
-
-    if ($app['action'] !== 'run') {
-        $app['logger']->setHandlers(array(new NullHandler(Logger::INFO)));
-    }
 
     echo json_encode($app->run());
 } catch (UserException $e) {

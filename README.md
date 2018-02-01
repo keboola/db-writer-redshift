@@ -70,16 +70,24 @@ Writes data to Redshift Database.
 
 App is developed on localhost using TDD.
 
-1. Clone from repository: `git clone git@github.com:keboola/db-writer-redshift.git`
-2. Change directory: `cd db-writer-redshift`
-3. Create `.env` file with variables:
+1. Clone the repository: 
 ```
-STORAGE_API_TOKEN=
-REDSHIFT_DB_HOST=
-REDSHIFT_DB_PORT=5439
-REDSHIFT_DB_USER=
-REDSHIFT_DB_PASSWORD=
-REDSHIFT_DB_DATABASE=
-REDSHIFT_DB_SCHEMA=
+git clone git@github.com:keboola/db-writer-redshift.git
 ```
-4. Run docker-compose, which will trigger phpunit: `docker-compose run --rm tests`
+2. Change directory: 
+```
+cd db-writer-redshift
+```
+3. Create `.env` file from `.env.template` and fill in values for environment variables: 
+```
+cp .env.template .env
+```
+4. 
+   1. Run test suite (phpcs, phpstan, phpunit) via docker-compose: 
+    ```
+    docker-compose run --rm tests
+    ```
+   2. Run single phpunit test, the test name in this case is "testWrongColumnOrder":
+    ```
+    docker-compose run --rm ./vendor/bin/phpunit --filter testWrongColumnOrder  
+    ```

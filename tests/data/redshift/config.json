@@ -96,5 +96,36 @@
         ]
       }
     ]
+  },
+  "storage": {
+    "input": {
+      "tables": [
+        {
+          "source": "simple",
+          "destination": "simple.csv",
+          "columns": [
+            "id",
+            "name",
+            "glasses"
+          ]
+        },
+        {
+          "source": "special",
+          "destination": "special.csv",
+          "columns": [
+            "col1",
+            "col2"
+          ]
+        },
+        {
+          "source": "empty",
+          "destination": "empty.csv",
+          "columns": [
+            "id",
+            "name"
+          ]
+        }
+      ]
+    }
   }
 }
