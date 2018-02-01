@@ -155,13 +155,7 @@ class Application
             return $item['name'];
         }, $tableConfig['items']);
 
-        $intersect = array_intersect($mappingColumns, $tableColumns);
-        $diff = array_merge(
-            array_diff_assoc($mappingColumns, $intersect),
-            array_diff_assoc($tableColumns, $intersect)
-        );
-
-        if (!empty($diff)) {
+        if ($mappingColumns !== $tableColumns) {
             throw new UserException(sprintf(
                 'Columns in configuration of table "%s" does not match with input mapping. Edit and re-save the configuration to fix the problem.',
                 $inputMapping['source']
