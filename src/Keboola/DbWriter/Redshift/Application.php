@@ -32,7 +32,7 @@ class Application
         $this->container = new Container();
         $this->container['action'] = isset($config['action']) ? $config['action'] : 'run';
         $this->container['parameters'] = $parameters;
-        $this->container['inputMapping'] = $config['storage']['input']['tables'];
+        $this->container['inputMapping'] = $config['storage']['input']['tables'] ?? [];
         $this->container['logger'] = $logger;
         $this->container['writer'] = function ($container) {
             return new Redshift($container['parameters']['db'], $container['logger']);
