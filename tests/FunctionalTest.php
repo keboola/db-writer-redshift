@@ -129,6 +129,7 @@ class FunctionalTest extends BaseTest
     {
         $config = $this->initConfig(function ($config) {
             $config['action'] = 'testConnection';
+            $config['storage'] = [];
             return $config;
         });
         $this->prepareDataFiles($config);
