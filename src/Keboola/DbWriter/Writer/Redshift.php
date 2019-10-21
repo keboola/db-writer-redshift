@@ -261,7 +261,7 @@ class Redshift extends Writer implements WriterInterface
 
     private function getErrors(): array
     {
-        $query = $this->db->query('SELECT * FROM stl_load_errors WHERE query = pg_last_query_id();');
+        $query = $this->db->query('SELECT * FROM stl_load_errors WHERE query = pg_last_query_id()-1;');
         return $query->fetchAll();
     }
 
