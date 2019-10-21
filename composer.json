@@ -6,8 +6,8 @@
     "keywords": ["keboola", "redshift", "aws", "db", "writer"],
     "authors": [
         {
-            "name": "Miroslav Čillík",
-            "email": "miro@keboola.com"
+            "name": "Keboola",
+            "email": "devel@keboola.com"
         }
     ],
     "require": {
