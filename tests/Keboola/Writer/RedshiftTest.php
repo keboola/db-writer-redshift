@@ -12,6 +12,7 @@ use Keboola\StorageApi\Client;
 
 class RedshiftTest extends BaseTest
 {
+    /** @var string $dataDir */
     protected $dataDir = __DIR__ . '/../../data';
 
     private const DRIVER = 'redshift';
