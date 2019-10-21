@@ -12,7 +12,7 @@ use Monolog\Handler\NullHandler;
 define('APP_NAME', 'wr-db-redshift');
 define('ROOT_PATH', __DIR__);
 
-require_once(dirname(__FILE__) . '/vendor/keboola/db-writer-common/bootstrap.php');
+require_once(dirname(__FILE__) . '/vendor/autoload.php');
 
 $logger = new Logger(APP_NAME);
 

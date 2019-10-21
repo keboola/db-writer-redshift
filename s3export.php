@@ -6,7 +6,7 @@ use Keboola\StorageApi\Options\GetFileOptions;
 
 define('ROOT_PATH', __DIR__);
 
-require_once(dirname(__FILE__) . '/vendor/keboola/db-writer-common/bootstrap.php');
+require_once(dirname(__FILE__) . '/vendor/autoload.php');
 
 $arguments = getopt('i:t::p::', ['table:', 'token::', 'path::']);
 
