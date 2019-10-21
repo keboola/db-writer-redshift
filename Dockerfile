@@ -1,5 +1,4 @@
-FROM php:7
-MAINTAINER Miroslav Cillik <miro@keboola.com>
+FROM php:7.3-cli
 
 # Dependencies
 RUN apt-get update
