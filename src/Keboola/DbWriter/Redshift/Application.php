@@ -8,7 +8,7 @@ use Keboola\DbWriter\Configuration\Validator;
 use Keboola\DbWriter\Exception\ApplicationException;
 use Keboola\DbWriter\Exception\UserException;
 use Keboola\DbWriter\Logger;
-use Keboola\DbWriter\Redshift\Configuration\ConfigDefinition;
+use Keboola\DbWriter\Redshift\Configuration\RedshiftConfigDefinition;
 use Keboola\DbWriter\Writer\Redshift;
 use Pimple\Container;
 
@@ -17,10 +17,10 @@ class Application
     /** @var Container $container */
     protected $container;
 
-    public function __construct(array $config, Logger $logger, ?ConfigDefinition $configDefinition = null)
+    public function __construct(array $config, Logger $logger, ?RedshiftConfigDefinition $configDefinition = null)
     {
         if ($configDefinition === null) {
-            $configDefinition = new ConfigDefinition();
+            $configDefinition = new RedshiftConfigDefinition();
         }
 
         $validate = Validator::getValidator($configDefinition);

@@ -6,7 +6,6 @@ use Keboola\DbWriter\Exception\ApplicationException;
 use Keboola\DbWriter\Exception\UserException;
 use Keboola\DbWriter\Logger;
 use Keboola\DbWriter\Redshift\Application;
-use Keboola\DbWriter\Redshift\Configuration\ConfigDefinition;
 use Monolog\Handler\NullHandler;
 
 define('APP_NAME', 'wr-db-redshift');
@@ -32,7 +31,7 @@ try {
         $logger->setHandlers(array(new NullHandler(Logger::INFO)));
     }
 
-    $app = new Application($config, $logger, new ConfigDefinition());
+    $app = new Application($config, $logger);
 
     echo json_encode($app->run());
 } catch (UserException $e) {
