@@ -16,6 +16,7 @@ class RedshiftActionConfigRowDefinition implements ConfigurationInterface
         $rootNode = $treeBuilder->getRootNode();
 
         $rootNode
+            ->ignoreExtraKeys(false)
             ->children()
                 ->scalarNode('data_dir')
                     ->isRequired()
