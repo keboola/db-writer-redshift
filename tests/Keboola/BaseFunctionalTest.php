@@ -83,8 +83,11 @@ class BaseFunctionalTest extends BaseTest
         if ($callback !== null) {
             $config = $callback($config);
         }
-
-        @unlink($dstConfigPath);
+        $fs = new Filesystem();
+        if (file_exists($this->tmpDataDir)) {
+            $fs->remove($this->tmpDataDir);
+        }
+        $fs->mkdir($this->tmpDataDir . '/in/tables');
         file_put_contents($dstConfigPath, json_encode($config));
 
         return $config;

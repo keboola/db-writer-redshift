@@ -9,15 +9,6 @@ use Symfony\Component\Filesystem\Filesystem;
 class FunctionalTest extends BaseFunctionalTest
 {
 
-    public function setUp(): void
-    {
-        $fs = new Filesystem();
-        if (file_exists($this->tmpDataDir)) {
-            $fs->remove($this->tmpDataDir);
-        }
-        $fs->mkdir($this->tmpDataDir . '/in/tables');
-    }
-
     public function testBadDataType(): void
     {
         $config = $this->initConfig(function ($config) {
