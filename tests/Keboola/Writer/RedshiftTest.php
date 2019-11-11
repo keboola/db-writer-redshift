@@ -1,36 +1,37 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: miroslavcillik
- * Date: 05/11/15
- * Time: 13:33
- */
 
-namespace Keboola\DbWriter\Writer;
+declare(strict_types=1);
+
+namespace Keboola\DbWriter\Tests\Writer;
 
 use Keboola\Csv\CsvFile;
 use Keboola\DbWriter\Redshift\Test\S3Loader;
 use Keboola\DbWriter\Test\BaseTest;
+use Keboola\DbWriter\Writer\Redshift;
 use Keboola\StorageApi\Client;
 
 class RedshiftTest extends BaseTest
 {
-    const DRIVER = 'redshift';
+    /** @var string $dataDir */
+    protected $dataDir = __DIR__ . '/../../data';
 
-    /** @var Redshift */
+    private const DRIVER = 'redshift';
+
+    /** @var Redshift $writer */
     private $writer;
 
+    /** @var array $config  */
     private $config;
 
-    /** @var Client */
+    /** @var Client $storageApi */
     private $storageApi;
 
-    /** @var S3Loader */
+    /** @var S3Loader $s3Loader */
     private $s3Loader;
 
-    public function setUp()
+    public function setUp(): void
     {
-        $this->config = $this->getConfig(self::DRIVER);
+        $this->config = $this->getConfig($this->dataDir . '/' . self::DRIVER);
         $this->config['parameters']['writer_class'] = 'Redshift';
         $this->config['parameters']['db']['schema'] = 'public';
         $this->config['parameters']['db']['password'] = $this->config['parameters']['db']['#password'];
@@ -54,38 +55,39 @@ class RedshiftTest extends BaseTest
         $this->s3Loader = new S3Loader($this->dataDir, $this->storageApi);
     }
 
-    protected function getConfig($driver)
+    protected function getConfig(?string $dataDir = null): array
     {
-        $config = json_decode(file_get_contents($this->dataDir . '/' .$driver . '/config.json'), true);
+        $dataDir = $dataDir ?: $this->dataDir;
+        $config = json_decode(file_get_contents($dataDir . '/config.json'), true);
         $config['parameters']['data_dir'] = $this->dataDir;
-        $config['parameters']['db']['user'] = $this->getEnv($driver, 'DB_USER', true);
-        $config['parameters']['db']['#password'] = $this->getEnv($driver, 'DB_PASSWORD', true);
-        $config['parameters']['db']['host'] = $this->getEnv($driver, 'DB_HOST');
-        $config['parameters']['db']['port'] = $this->getEnv($driver, 'DB_PORT');
-        $config['parameters']['db']['database'] = $this->getEnv($driver, 'DB_DATABASE');
+        $config['parameters']['db']['user'] = $this->getEnv(self::DRIVER . '_DB_USER', true);
+        $config['parameters']['db']['#password'] = $this->getEnv(self::DRIVER . '_DB_PASSWORD', true);
+        $config['parameters']['db']['host'] = $this->getEnv(self::DRIVER . '_DB_HOST');
+        $config['parameters']['db']['port'] = $this->getEnv(self::DRIVER . '_DB_PORT');
+        $config['parameters']['db']['database'] = $this->getEnv(self::DRIVER . '_DB_DATABASE');
 
         return $config;
     }
 
-    private function getInputCsv($tableId)
+    private function getInputCsv(string $tableId): string
     {
-        return sprintf($this->dataDir . "/in/tables/%s.csv", $tableId);
+        return sprintf($this->dataDir . '/in/tables/%s.csv', $tableId);
     }
 
-    private function loadDataToS3($tableId)
+    private function loadDataToS3(string $tableId): array
     {
         return $this->s3Loader->upload($tableId);
     }
 
-    public function testDrop()
+    public function testDrop(): void
     {
         $conn = $this->writer->getConnection();
-        $conn->exec("CREATE TABLE dropMe (
+        $conn->exec('CREATE TABLE dropMe (
           id INT PRIMARY KEY,
           firstname VARCHAR(30) NOT NULL,
-          lastname VARCHAR(30) NOT NULL)");
+          lastname VARCHAR(30) NOT NULL)');
 
-        $this->writer->drop("dropMe");
+        $this->writer->drop('dropMe');
 
         $stmt = $conn->query("
             SELECT *
@@ -98,7 +100,7 @@ class RedshiftTest extends BaseTest
         $this->assertEmpty($res);
     }
 
-    public function testCreate()
+    public function testCreate(): void
     {
         $tables = $this->config['parameters']['tables'];
 
@@ -121,7 +123,7 @@ class RedshiftTest extends BaseTest
         $this->assertEquals('simple', $res[0]['table_name']);
     }
 
-    public function testWriteAsync()
+    public function testWriteAsync(): void
     {
         $tables = $this->config['parameters']['tables'];
 
@@ -139,7 +141,7 @@ class RedshiftTest extends BaseTest
 
         $resFilename = tempnam('/tmp', 'db-wr-test-tmp');
         $csv = new CsvFile($resFilename);
-        $csv->writeRow(["id","name","glasses"]);
+        $csv->writeRow(['id','name','glasses']);
         foreach ($res as $row) {
             $csv->writeRow($row);
         }
@@ -147,7 +149,7 @@ class RedshiftTest extends BaseTest
         $this->assertFileEquals($this->getInputCsv($table['tableId']), $resFilename);
     }
 
-    public function testWriteEmpty()
+    public function testWriteEmpty(): void
     {
         $tables = $this->config['parameters']['tables'];
         $tables = array_filter($tables, function ($table) {
@@ -168,7 +170,7 @@ class RedshiftTest extends BaseTest
 
         $resFilename = tempnam('/tmp', 'db-wr-test-tmp');
         $csv = new CsvFile($resFilename);
-        $csv->writeRow(["id","name"]);
+        $csv->writeRow(['id','name']);
         foreach ($res as $row) {
             $csv->writeRow($row);
         }
@@ -176,7 +178,7 @@ class RedshiftTest extends BaseTest
         $this->assertFileEquals($this->getInputCsv($table['tableId']), $resFilename);
     }
 
-    public function testUpsert()
+    public function testUpsert(): void
     {
         $conn = $this->writer->getConnection();
         $tables = $this->config['parameters']['tables'];
@@ -195,7 +197,7 @@ class RedshiftTest extends BaseTest
         $this->writer->writeFromS3($s3Manifest, $targetTable);
 
         // second write
-        $s3Manifest = $this->loadDataToS3($table['tableId'] . "_increment");
+        $s3Manifest = $this->loadDataToS3($table['tableId'] . '_increment');
         $this->writer->create($table);
         $this->writer->writeFromS3($s3Manifest, $table);
 
@@ -206,12 +208,12 @@ class RedshiftTest extends BaseTest
 
         $resFilename = tempnam('/tmp', 'db-wr-test-tmp');
         $csv = new CsvFile($resFilename);
-        $csv->writeRow(["id", "name", "glasses"]);
+        $csv->writeRow(['id', 'name', 'glasses']);
         foreach ($res as $row) {
             $csv->writeRow($row);
         }
 
-        $expectedFilename = $this->getInputCsv($table['tableId'] . "_merged");
+        $expectedFilename = $this->getInputCsv($table['tableId'] . '_merged');
 
         $this->assertFileEquals($expectedFilename, $resFilename);
     }

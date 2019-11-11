@@ -1,34 +1,21 @@
 version: '2'
 services:
+  app: &main
+    build: .
+    image: keboola/db-writer-redshift
+    working_dir: /code
+    environment:
+      STORAGE_API_URL: $STORAGE_API_URL
+      STORAGE_API_TOKEN: $STORAGE_API_TOKEN
+      REDSHIFT_DB_HOST: $REDSHIFT_DB_HOST
+      REDSHIFT_DB_PORT: $REDSHIFT_DB_PORT
+      REDSHIFT_DB_USER: $REDSHIFT_DB_USER
+      REDSHIFT_DB_PASSWORD: $REDSHIFT_DB_PASSWORD
+      REDSHIFT_DB_DATABASE: $REDSHIFT_DB_DATABASE
+      REDSHIFT_DB_SCHEMA: $REDSHIFT_DB_SCHEMA
+
   dev:
-    build: .
-    image: keboola/db-writer-redshift
+    <<: *main
+    image: keboola/db-writer-redshift-dev
     volumes:
-    - .:/code
-    working_dir: /code
-    command: "./phpunit.sh"
-    environment:
-      STORAGE_API_URL: $STORAGE_API_URL
-      STORAGE_API_TOKEN: $STORAGE_API_TOKEN
-      REDSHIFT_DB_HOST: $REDSHIFT_DB_HOST
-      REDSHIFT_DB_PORT: $REDSHIFT_DB_PORT
-      REDSHIFT_DB_USER: $REDSHIFT_DB_USER
-      REDSHIFT_DB_PASSWORD: $REDSHIFT_DB_PASSWORD
-      REDSHIFT_DB_DATABASE: $REDSHIFT_DB_DATABASE
-      REDSHIFT_DB_SCHEMA: $REDSHIFT_DB_SCHEMA
-
-  tests:
-    build: .
-    image: keboola/db-writer-redshift
-    working_dir: /code
-    command: "./phpunit.sh"
-    environment:
-      STORAGE_API_URL: $STORAGE_API_URL
-      STORAGE_API_TOKEN: $STORAGE_API_TOKEN
-      REDSHIFT_DB_HOST: $REDSHIFT_DB_HOST
-      REDSHIFT_DB_PORT: $REDSHIFT_DB_PORT
-      REDSHIFT_DB_USER: $REDSHIFT_DB_USER
-      REDSHIFT_DB_PASSWORD: $REDSHIFT_DB_PASSWORD
-      REDSHIFT_DB_DATABASE: $REDSHIFT_DB_DATABASE
-      REDSHIFT_DB_SCHEMA: $REDSHIFT_DB_SCHEMA
-
+      - .:/code

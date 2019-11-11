@@ -4,7 +4,8 @@ services:
   - docker
 
 script:
-  - docker-compose run --rm tests
+  - docker-compose build
+  - docker-compose run --rm app composer ci
 
 deploy:
   provider: script

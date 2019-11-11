@@ -7,3 +7,4 @@ runtests.sh
 /build
 .env
 tests.sh
+.phpunit.result.cache

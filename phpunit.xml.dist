@@ -6,9 +6,8 @@
          convertNoticesToExceptions="true"
          convertWarningsToExceptions="true"
          processIsolation="false"
-         stopOnFailure="true"
-         syntaxCheck="false"
-         bootstrap="vendor/keboola/db-writer-common/bootstrap.php">
+         stopOnFailure="false"
+         bootstrap="vendor/autoload.php">
 
     <php>
         <const name="ROOT_PATH" value="./"/>

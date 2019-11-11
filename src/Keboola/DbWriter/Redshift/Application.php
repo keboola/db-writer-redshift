@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Keboola\DbWriter\Redshift;
 
 use Keboola\DbWriter\Configuration\Validator;
@@ -12,11 +14,12 @@ use Pimple\Container;
 
 class Application
 {
+    /** @var Container $container */
     protected $container;
 
-    public function __construct($config, Logger $logger, $configDefinition = null)
+    public function __construct(array $config, Logger $logger, ?ConfigDefinition $configDefinition = null)
     {
-        if ($configDefinition == null) {
+        if ($configDefinition === null) {
             $configDefinition = new ConfigDefinition();
         }
 
@@ -33,7 +36,7 @@ class Application
         };
     }
 
-    public function run()
+    public function run(): array
     {
         $actionMethod = $this->container['action'] . 'Action';
         if (!method_exists($this, $actionMethod)) {
@@ -43,7 +46,7 @@ class Application
         return $this->$actionMethod();
     }
 
-    public function runAction()
+    public function runAction(): array
     {
         $uploaded = [];
         $tables = array_filter($this->container['parameters']['tables'], function ($table) {
@@ -68,21 +71,21 @@ class Application
                 $this->loadFull($tableConfig, $manifest);
                 $uploaded[] = $tableConfig['tableId'];
             } catch (\PDOException $e) {
-                throw new UserException($e->getMessage(), 0, $e, ["trace" => $e->getTraceAsString()]);
+                throw new UserException($e->getMessage(), 0, $e, ['trace' => $e->getTraceAsString()]);
             } catch (UserException $e) {
                 throw $e;
-            } catch (\Exception $e) {
-                throw new ApplicationException($e->getMessage(), 2, $e, ["trace" => $e->getTraceAsString()]);
+            } catch (\Throwable $e) {
+                throw new ApplicationException($e->getMessage(), 2, $e, ['trace' => $e->getTraceAsString()]);
             }
         }
 
         return [
             'status' => 'success',
-            'uploaded' => $uploaded
+            'uploaded' => $uploaded,
         ];
     }
 
-    public function loadIncremental($tableConfig, $manifest)
+    public function loadIncremental(array $tableConfig, array $manifest): void
     {
         /** @var Redshift $writer */
         $writer = $this->container['writer'];
@@ -104,7 +107,7 @@ class Application
         $writer->upsert($stageTable, $tableConfig['dbName']);
     }
 
-    public function loadFull($tableConfig, $manifest)
+    public function loadFull(array $tableConfig, array $manifest): void
     {
         /** @var Redshift $writer */
         $writer = $this->container['writer'];
@@ -114,23 +117,24 @@ class Application
         $writer->writeFromS3($manifest['s3'], $tableConfig);
     }
 
-    private function getManifest($tableId)
+    private function getManifest(string $tableId): array
     {
         return json_decode(file_get_contents(
-            $this->container['parameters']['data_dir'] . "/in/tables/" . $tableId . ".csv.manifest"
+            $this->container['parameters']['data_dir'] . '/in/tables/' . $tableId . '.csv.manifest'
         ), true);
     }
 
-    private function getInputMapping($tableId)
+    private function getInputMapping(string $tableId): array
     {
         foreach ($this->container['inputMapping'] as $inputTable) {
-            if ($tableId == $inputTable['source']) {
+            if ($tableId === $inputTable['source']) {
                 return $inputTable;
             }
         }
 
         throw new UserException(sprintf(
-            'Table "%s" is missing from input mapping. Reloading the page and re-saving configuration may fix the problem.',
+            'Table "%s" is missing from input mapping.' .
+            ' Reloading the page and re-saving configuration may fix the problem.',
             $tableId
         ));
     }
@@ -141,7 +145,7 @@ class Application
      * @param $tableConfig
      * @throws UserException
      */
-    private function checkColumns($tableConfig)
+    private function checkColumns(array $tableConfig): void
     {
         $inputMapping = $this->getInputMapping($tableConfig['tableId']);
         $mappingColumns = $inputMapping['columns'];
@@ -151,17 +155,18 @@ class Application
 
         if ($mappingColumns !== $tableColumns) {
             throw new UserException(sprintf(
-                'Columns in configuration of table "%s" does not match with input mapping. Edit and re-save the configuration to fix the problem.',
+                'Columns in configuration of table "%s" does not match with input mapping.' .
+                ' Edit and re-save the configuration to fix the problem.',
                 $inputMapping['source']
             ));
         }
     }
 
-    public function testConnectionAction()
+    public function testConnectionAction(): array
     {
         try {
             $this->container['writer']->testConnection();
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             throw new UserException(sprintf("Connection failed: '%s'", $e->getMessage()), 0, $e);
         }
 
@@ -170,7 +175,7 @@ class Application
         ];
     }
 
-    public function getTablesInfoAction()
+    public function getTablesInfoAction(): array
     {
         $tables = $this->container['writer']->showTables($this['parameters']['db']['database']);
 
@@ -181,7 +186,7 @@ class Application
 
         return [
             'status' => 'success',
-            'tables' => $tablesInfo
+            'tables' => $tablesInfo,
         ];
     }
 }

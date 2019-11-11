@@ -1,12 +1,8 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: miroslavcillik
- * Date: 27/10/16
- * Time: 17:20
- */
 
-namespace Keboola\DbWriter\Redshift\Tests;
+declare(strict_types=1);
+
+namespace Keboola\DbWriter\Tests;
 
 use Keboola\DbWriter\Redshift\Test\S3Loader;
 use Keboola\DbWriter\Test\BaseTest;
@@ -16,13 +12,16 @@ use Symfony\Component\Process\Process;
 
 class FunctionalTest extends BaseTest
 {
-    const DRIVER = 'Redshift';
+    /** @var string  */
+    private const DRIVER = 'Redshift';
 
+    /** @var string $dataDir */
     protected $dataDir = ROOT_PATH . 'tests/data/functional';
 
+    /** @var string $tmpDataDir */
     protected $tmpDataDir = '/tmp/wr-db-redshift/data';
 
-    public function setUp()
+    public function setUp(): void
     {
         $fs = new Filesystem();
         if (file_exists($this->tmpDataDir)) {
@@ -31,58 +30,58 @@ class FunctionalTest extends BaseTest
         $fs->mkdir($this->tmpDataDir . '/in/tables');
     }
 
-    public function testRun()
+    public function testRun(): void
     {
         $this->prepareDataFiles($this->initConfig());
         $process = $this->runProcess();
         $this->assertEquals(0, $process->getExitCode(), $process->getOutput());
     }
 
-    public function testBadDataType()
+    public function testBadDataType(): void
     {
         $config = $this->initConfig(function ($config) {
             $config['parameters']['tables'] = [[
-                "tableId" => "bad_type",
-                "dbName" => "bad_type",
-                "export" => true,
-                "incremental" => false,
-                "primaryKey" => [
-                    "id"
+                'tableId' => 'bad_type',
+                'dbName' => 'bad_type',
+                'export' => true,
+                'incremental' => false,
+                'primaryKey' => [
+                    'id',
                 ],
-                "items" => [
+                'items' => [
                     [
-                        "name" => "id",
-                        "dbName" => "id",
-                        "type" => "int",
-                        "size" => null,
-                        "nullable" => null,
-                        "default" => null
+                        'name' => 'id',
+                        'dbName' => 'id',
+                        'type' => 'int',
+                        'size' => null,
+                        'nullable' => null,
+                        'default' => null,
                     ],
                     [
-                        "name" => "name",
-                        "dbName" => "name",
-                        "type" => "nvarchar",
-                        "size" => 255,
-                        "nullable" => null,
-                        "default" => null
+                        'name' => 'name',
+                        'dbName' => 'name',
+                        'type' => 'nvarchar',
+                        'size' => 255,
+                        'nullable' => null,
+                        'default' => null,
                     ],
                     [
-                        "name" => "glasses",
-                        "dbName" => "glasses",
-                        "type" => "nvarchar",
-                        "size" => 255,
-                        "nullable" => null,
-                        "default" => null
+                        'name' => 'glasses',
+                        'dbName' => 'glasses',
+                        'type' => 'nvarchar',
+                        'size' => 255,
+                        'nullable' => null,
+                        'default' => null,
                     ],
                     [
-                        "name" => "created",
-                        "dbName" => "created",
-                        "type" => "date",
-                        "size" => "",
-                        "nullable" => null,
-                        "default" => null
-                    ]
-                ]
+                        'name' => 'created',
+                        'dbName' => 'created',
+                        'type' => 'date',
+                        'size' => '',
+                        'nullable' => null,
+                        'default' => null,
+                    ],
+                ],
             ]];
             $config['storage']['input']['tables'][] = [
                 'source' => 'bad_type',
@@ -91,8 +90,8 @@ class FunctionalTest extends BaseTest
                     'id',
                     'name',
                     'glasses',
-                    'created'
-                ]
+                    'created',
+                ],
             ];
             return $config;
         });
@@ -101,13 +100,13 @@ class FunctionalTest extends BaseTest
 
         $process = $this->runProcess();
         $this->assertEquals(1, $process->getExitCode(), $process->getOutput());
-        $this->assertContains(
+        $this->assertStringContainsString(
             "Column 'created', line 3: Invalid Date Format - length must be 10 or more",
             $process->getOutput()
         );
     }
 
-    public function testWrongColumnOrder()
+    public function testWrongColumnOrder(): void
     {
         // shuffle columns order
         $config = $this->initConfig(function ($config) {
@@ -119,13 +118,14 @@ class FunctionalTest extends BaseTest
 
         $process = $this->runProcess();
         $this->assertEquals(1, $process->getExitCode(), $process->getOutput());
-        $this->assertContains(
-            'Columns in configuration of table "simple" does not match with input mapping. Edit and re-save the configuration to fix the problem.',
+        $this->assertStringContainsString(
+            'Columns in configuration of table "simple" does not match with input mapping.' .
+            ' Edit and re-save the configuration to fix the problem.',
             $process->getOutput()
         );
     }
 
-    public function testTestConnection()
+    public function testTestConnection(): void
     {
         $config = $this->initConfig(function ($config) {
             $config['action'] = 'testConnection';
@@ -142,7 +142,7 @@ class FunctionalTest extends BaseTest
         $this->assertEquals('success', $data['status']);
     }
 
-    private function initConfig(callable $callback = null)
+    private function initConfig(?callable $callback = null): array
     {
         $srcConfigPath = $this->dataDir . '/config.json';
         $dstConfigPath = $this->tmpDataDir . '/config.json';
@@ -150,14 +150,13 @@ class FunctionalTest extends BaseTest
 
         $config['parameters']['writer_class'] = self::DRIVER;
         $config['parameters']['data_dir'] = $this->tmpDataDir;
-        $config['parameters']['db']['user'] = $this->getEnv(self::DRIVER, 'DB_USER', true);
-        $config['parameters']['db']['#password'] = $this->getEnv(self::DRIVER, 'DB_PASSWORD', true);
-        $config['parameters']['db']['password'] = $this->getEnv(self::DRIVER, 'DB_PASSWORD', true);
-        $config['parameters']['db']['host'] = $this->getEnv(self::DRIVER, 'DB_HOST');
-        $config['parameters']['db']['port'] = $this->getEnv(self::DRIVER, 'DB_PORT');
-        $config['parameters']['db']['database'] = $this->getEnv(self::DRIVER, 'DB_DATABASE');
-        $config['parameters']['db']['schema'] = $this->getEnv(self::DRIVER, 'DB_SCHEMA');
-
+        $config['parameters']['db']['user'] = $this->getEnv(self::DRIVER . '_DB_USER', true);
+        $config['parameters']['db']['#password'] = $this->getEnv(self::DRIVER . '_DB_PASSWORD', true);
+        $config['parameters']['db']['password'] = $this->getEnv(self::DRIVER . '_DB_PASSWORD', true);
+        $config['parameters']['db']['host'] = $this->getEnv(self::DRIVER . '_DB_HOST');
+        $config['parameters']['db']['port'] = $this->getEnv(self::DRIVER . '_DB_PORT');
+        $config['parameters']['db']['database'] = $this->getEnv(self::DRIVER . '_DB_DATABASE');
+        $config['parameters']['db']['schema'] = $this->getEnv(self::DRIVER . '_DB_SCHEMA');
 
         if ($callback !== null) {
             $config = $callback($config);
@@ -169,7 +168,7 @@ class FunctionalTest extends BaseTest
         return $config;
     }
 
-    private function prepareDataFiles($config)
+    private function prepareDataFiles(array $config): void
     {
         $writer = $this->getWriter($config['parameters']);
         $s3Loader = new S3Loader(
@@ -200,7 +199,7 @@ class FunctionalTest extends BaseTest
         }
     }
 
-    protected function runProcess()
+    protected function runProcess(): Process
     {
         $process = new Process('php ' . ROOT_PATH . 'run.php --data=' . $this->tmpDataDir . ' 2>&1');
         $process->setTimeout(300);

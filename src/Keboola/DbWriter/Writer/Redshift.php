@@ -1,10 +1,6 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: miroslavcillik
- * Date: 12/02/16
- * Time: 16:38
- */
+
+declare(strict_types=1);
 
 namespace Keboola\DbWriter\Writer;
 
@@ -17,6 +13,7 @@ use Keboola\DbWriter\WriterInterface;
 
 class Redshift extends Writer implements WriterInterface
 {
+    /** @var array $allowedTypes */
     private static $allowedTypes = [
         'int', 'int2', 'int4', 'int8',
         'smallint', 'integer', 'bigint',
@@ -25,59 +22,65 @@ class Redshift extends Writer implements WriterInterface
         'boolean',
         'char', 'character', 'nchar', 'bpchar',
         'varchar', 'character varying', 'nvarchar', 'text',
-        'date', 'timestamp', 'timestamp without timezone'
+        'date', 'timestamp', 'timestamp without timezone',
     ];
 
-    /** @var \PDO */
+    /** @var \PDO $db */
     protected $db;
 
-    /** @var Logger */
+    /** @var Logger $logger */
     protected $logger;
 
+    /** @var array $dbParams */
     protected $dbParams;
 
-    public function __construct($dbParams, Logger $logger)
+    public function __construct(array $dbParams, Logger $logger)
     {
         parent::__construct($dbParams, $logger);
         $this->logger = $logger;
         $this->dbParams = $dbParams;
     }
 
-    public function createConnection($dbParams)
+    public function createConnection(array $dbParams): \PDO
     {
         // convert errors to PDOExceptions
         $options = [
-            \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION
+            \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
         ];
 
         // check params
         foreach (['host', 'database', 'user', 'password', 'schema'] as $r) {
             if (!isset($dbParams[$r])) {
-                throw new UserException(sprintf("Parameter %s is missing.", $r));
+                throw new UserException(sprintf('Parameter %s is missing.', $r));
             }
         }
 
         $port = isset($dbParams['port']) ? $dbParams['port'] : '5439';
-        $dsn = "pgsql:host={$dbParams['host']};port={$port};dbname={$dbParams["database"]};keepalives=1;keepalives_idle=60";
+        $dsn = sprintf(
+            'pgsql:host=%s;port=%s;dbname=%s;keepalives=1;keepalives_idle=60',
+            $dbParams['host'],
+            $port,
+            $dbParams['database']
+        );
 
         $this->logger->info(
-            "Connecting to DSN '" . $dsn . "'...",
+            sprintf('Connecting to DSN \'%s\'...', $dsn),
             [
-                'options' => $options
+                'options' => $options,
             ]
         );
 
         $pdo = new \PDO($dsn, $dbParams['user'], $dbParams['password'], $options);
-        $pdo->exec("SET search_path TO \"{$dbParams["schema"]}\";");
+        $pdo->exec(sprintf('SET search_path TO "%s";', $dbParams['schema']));
 
         return $pdo;
     }
 
-    public function writeFromS3($s3info, array $table)
+    public function writeFromS3(array $s3info, array $table): void
     {
-        $s3key = $s3info["bucket"] . "/" . $s3info["key"];
+        $s3key = $s3info['bucket'] . '/' . $s3info['key'];
 
-        if (isset($s3info["isSliced"]) && $s3info["isSliced"] === true) {
+        if (isset($s3info['isSliced']) && $s3info['isSliced'] === true) {
             // empty manifest handling
             $manifest = $this->downloadManifest($s3info, "s3://{$s3key}");
 
@@ -87,37 +90,45 @@ class Redshift extends Writer implements WriterInterface
         }
 
         // Generate copy command
-        $command = "COPY \"{$table['dbName']}\" FROM 's3://{$s3key}'"
-            . " CREDENTIALS 'aws_access_key_id={$s3info["credentials"]["access_key_id"]};aws_secret_access_key={$s3info["credentials"]["secret_access_key"]};token={$s3info["credentials"]["session_token"]}'"
-            . " REGION AS '{$s3info["region"]}' DELIMITER ',' CSV QUOTE '\"'"
-            . " NULL AS 'NULL' ACCEPTANYDATE TRUNCATECOLUMNS";
+        $command = sprintf('COPY "%s" FROM \'s3://%s\'', $table['dbName'], $s3key);
+        $command .= sprintf(
+            " CREDENTIALS 'aws_access_key_id=%s;aws_secret_access_key=%s;token=%s'",
+            $s3info['credentials']['access_key_id'],
+            $s3info['credentials']['secret_access_key'],
+            $s3info['credentials']['session_token']
+        );
+        $command .= sprintf(
+            " REGION AS '%s' DELIMITER ',' CSV QUOTE '\"'",
+            $s3info['region']
+        );
+        $command .= " NULL AS 'NULL' ACCEPTANYDATE TRUNCATECOLUMNS";
 
         // Sliced files use manifest and no header
-        if (isset($s3info["isSliced"]) && $s3info["isSliced"] === true) {
-            $command .= " MANIFEST";
+        if (isset($s3info['isSliced']) && $s3info['isSliced'] === true) {
+            $command .= ' MANIFEST';
         } else {
-            $command .= " IGNOREHEADER 1";
+            $command .= ' IGNOREHEADER 1';
         }
-        $command .= " GZIP;";
+        $command .= ' GZIP;';
 
         $this->execQuery($command);
     }
 
-    public function isTableValid(array $table, $ignoreExport = false)
+    public function isTableValid(array $table, bool $ignoreExport = false): bool
     {
         // TODO: Implement isTableValid() method.
 
         return true;
     }
 
-    public function drop($tableName)
+    public function drop(string $tableName): void
     {
-        $this->execQuery(sprintf("DROP TABLE IF EXISTS %s;", $this->escape($tableName)));
+        $this->execQuery(sprintf('DROP TABLE IF EXISTS %s;', $this->escape($tableName)));
     }
 
-    public function create(array $table)
+    public function create(array $table): void
     {
-        $sql = sprintf("CREATE TABLE %s (", $this->escape($table['dbName']));
+        $sql = sprintf('CREATE TABLE %s (', $this->escape($table['dbName']));
 
         $columns = array_filter($table['items'], function ($item) {
             return (strtolower($item['type']) !== 'ignore');
@@ -129,19 +140,19 @@ class Redshift extends Writer implements WriterInterface
             }
             $null = $col['nullable'] ? 'NULL' : 'NOT NULL';
             $default = empty($col['default']) ? '' : "DEFAULT '{$col['default']}'";
-            if ($type == 'TEXT') {
+            if ($type === 'TEXT') {
                 $default = '';
             }
             $sql .= "{$this->escape($col['dbName'])} $type $null $default";
             $sql .= ',';
         }
         $sql = substr($sql, 0, -1);
-        $sql .= ");";
+        $sql .= ');';
 
         $this->execQuery($sql);
     }
 
-    public function upsert(array $table, $targetTable)
+    public function upsert(array $table, string $targetTable): void
     {
         $sourceTable = $this->escape($table['dbName']);
         $targetTable = $this->escape($targetTable);
@@ -151,7 +162,7 @@ class Redshift extends Writer implements WriterInterface
                 return $this->escape($item['dbName']);
             },
             array_filter($table['items'], function ($item) {
-                return strtolower($item['type']) != 'ignore';
+                return strtolower($item['type']) !== 'ignore';
             })
         );
 
@@ -197,12 +208,12 @@ class Redshift extends Writer implements WriterInterface
         $this->drop($table['dbName']);
     }
 
-    public static function getAllowedTypes()
+    public static function getAllowedTypes(): array
     {
         return self::$allowedTypes;
     }
 
-    public function tableExists($tableName)
+    public function tableExists(string $tableName): bool
     {
         $stmt = $this->db->query(sprintf(
             "SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = '%s'",
@@ -212,12 +223,7 @@ class Redshift extends Writer implements WriterInterface
         return !empty($res);
     }
 
-    /**
-     * @param $query
-     * @return int|null
-     * @throws UserException
-     */
-    private function execQuery($query)
+    private function execQuery(string $query): ?int
     {
         // remove credentials
         $queryToLog = preg_replace(
@@ -253,13 +259,13 @@ class Redshift extends Writer implements WriterInterface
         return null;
     }
 
-    private function getErrors()
+    private function getErrors(): array
     {
-        $query = $this->db->query("SELECT * FROM stl_load_errors WHERE query = pg_last_query_id();");
+        $query = $this->db->query('SELECT * FROM stl_load_errors WHERE query = pg_last_query_id()-1;');
         return $query->fetchAll();
     }
 
-    private function errorsToException($query)
+    private function errorsToException(string $query): UserException
     {
         $errors = $this->getErrors();
         $message = '';
@@ -268,56 +274,62 @@ class Redshift extends Writer implements WriterInterface
                 "Column '%s', line %s: %s",
                 trim($error['colname']),
                 $error['line_number'],
-                trim($error["err_reason"])
+                trim($error['err_reason'])
             );
         }
 
         return new UserException($message, 0, null, [
             'query' => $query,
-            'redshift_errors' => $errors
+            'redshift_errors' => $errors,
         ]);
     }
 
-    private function reconnect()
+    private function reconnect(): void
     {
         try {
             $this->db = $this->createConnection($this->dbParams);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
         };
     }
 
-    public function showTables($dbName)
+    public function showTables(string $dbName): array
     {
-        throw new ApplicationException("Method not implemented");
+        throw new ApplicationException('Method not implemented');
     }
 
-    public function getTableInfo($tableName)
+    public function getTableInfo(string $tableName): array
     {
-        throw new ApplicationException("Method not implemented");
+        throw new ApplicationException('Method not implemented');
     }
 
-    public function write(CsvFile $csv, array $table)
+    public function write(CsvFile $csv, array $table): void
     {
-        throw new ApplicationException("Method not implemented");
+        throw new ApplicationException('Method not implemented');
     }
 
-    private function escape($str)
+    public function validateTable(array $tableConfig): void
+    {
+        throw new ApplicationException('Method not implemented');
+    }
+
+
+    private function escape(string $str): string
     {
         return '"' . $str . '"';
     }
 
-    public function testConnection()
+    public function testConnection(): void
     {
         $this->db->query('select current_date')->execute();
     }
 
-    private function downloadManifest($s3Info, $path)
+    private function downloadManifest(array $s3Info, string $path): array
     {
         $s3Client = new \Aws\S3\S3Client([
             'credentials' => [
                 'key' => $s3Info['credentials']['access_key_id'],
                 'secret' => $s3Info['credentials']['secret_access_key'],
-                'token' =>  $s3Info['credentials']['session_token']
+                'token' =>  $s3Info['credentials']['session_token'],
             ],
             'region' => $s3Info['region'],
             'version' => '2006-03-01',
@@ -327,10 +339,10 @@ class Redshift extends Writer implements WriterInterface
             'Bucket' => $path['host'],
             'Key' => ltrim($path['path'], '/'),
         ]);
-        return json_decode((string)$response['Body'], true);
+        return json_decode((string) $response['Body'], true);
     }
 
-    public function generateTmpName($tableName)
+    public function generateTmpName(string $tableName): string
     {
         return $tableName . '_temp_' . uniqid();
     }
