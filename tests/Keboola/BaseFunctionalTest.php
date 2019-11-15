@@ -39,11 +39,11 @@ class BaseFunctionalTest extends BaseTest
         $this->prepareDataFiles($config);
 
         $process = $this->runProcess();
-        $this->assertEquals(1, $process->getExitCode(), $process->getOutput());
+        $this->assertEquals(1, $process->getExitCode(), $process->getOutput() . $process->getErrorOutput());
         $this->assertStringContainsString(
             'Columns in configuration of table "simple" does not match with input mapping.' .
             ' Edit and re-save the configuration to fix the problem.',
-            $process->getOutput()
+            $process->getOutput() . $process->getErrorOutput()
         );
     }
 
