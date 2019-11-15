@@ -56,7 +56,7 @@ class RedshiftApplication
 
     public function runAction(): array
     {
-        $uploaded = [];
+        $uploadedTableId = [];
         if (isset($this->container['parameters']['tables'])) {
             $tables = array_filter($this->container['parameters']['tables'], function ($table) {
                 return ($table['export']);
@@ -64,18 +64,18 @@ class RedshiftApplication
             foreach ($tables as $tableConfig) {
                 $upload = $this->runWriteTable($tableConfig);
                 if (!is_null($upload)) {
-                    $uploaded[] = $upload;
+                    $uploadedTableId[] = $upload;
                 }
             }
         } else {
             $upload = $this->runWriteTable($this->container['parameters']);
             if (!is_null($upload)) {
-                $uploaded[] = $upload;
+                $uploadedTableId[] = $upload;
             }
         }
         return [
             'status' => 'success',
-            'uploaded' => $uploaded,
+            'uploaded' => $uploadedTableId,
         ];
     }
 
