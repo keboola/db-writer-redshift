@@ -1,0 +1,61 @@
+{
+  "parameters": {
+    "db": {
+      "driver": "redshift",
+      "host": "redshift",
+      "port": 5439,
+      "database": "test",
+      "schema": "public",
+      "user": null,
+      "password": null
+    },
+    "tableId": "simple",
+    "dbName": "simple",
+    "export": true,
+    "incremental": false,
+    "primaryKey": [
+      "id"
+    ],
+    "items": [
+      {
+        "name": "id",
+        "dbName": "id",
+        "type": "int",
+        "size": null,
+        "nullable": null,
+        "default": null
+      },
+      {
+        "name": "name",
+        "dbName": "name",
+        "type": "nvarchar",
+        "size": 255,
+        "nullable": null,
+        "default": null
+      },
+      {
+        "name": "glasses",
+        "dbName": "glasses",
+        "type": "nvarchar",
+        "size": 255,
+        "nullable": null,
+        "default": null
+      }
+    ]
+  },
+  "storage": {
+    "input": {
+      "tables": [
+        {
+          "source": "simple",
+          "destination": "simple.csv",
+          "columns": [
+            "id",
+            "name",
+            "glasses"
+          ]
+        }
+      ]
+    }
+  }
+}

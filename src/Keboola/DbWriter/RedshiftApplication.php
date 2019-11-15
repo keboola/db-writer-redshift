@@ -2,32 +2,40 @@
 
 declare(strict_types=1);
 
-namespace Keboola\DbWriter\Redshift;
+namespace Keboola\DbWriter;
 
 use Keboola\DbWriter\Configuration\Validator;
 use Keboola\DbWriter\Exception\ApplicationException;
 use Keboola\DbWriter\Exception\UserException;
-use Keboola\DbWriter\Logger;
-use Keboola\DbWriter\Redshift\Configuration\ConfigDefinition;
+use Keboola\DbWriter\Redshift\Configuration\RedshiftActionConfigRowDefinition;
+use Keboola\DbWriter\Redshift\Configuration\RedshiftConfigDefinition;
+use Keboola\DbWriter\Redshift\Configuration\RedshiftConfigRowDefinition;
 use Keboola\DbWriter\Writer\Redshift;
 use Pimple\Container;
 
-class Application
+class RedshiftApplication
 {
     /** @var Container $container */
     protected $container;
 
-    public function __construct(array $config, Logger $logger, ?ConfigDefinition $configDefinition = null)
+    public function __construct(array $config, Logger $logger)
     {
-        if ($configDefinition === null) {
-            $configDefinition = new ConfigDefinition();
+        $action = !is_null($config['action']) ? $config['action'] : 'run';
+        if (isset($config['parameters']['tables'])) {
+            $configDefinition = new RedshiftConfigDefinition();
+        } else {
+            if ($action === 'run') {
+                $configDefinition = new RedshiftConfigRowDefinition();
+            } else {
+                $configDefinition = new RedshiftActionConfigRowDefinition();
+            }
         }
 
         $validate = Validator::getValidator($configDefinition);
         $parameters = $validate($config['parameters']);
 
         $this->container = new Container();
-        $this->container['action'] = isset($config['action']) ? $config['action'] : 'run';
+        $this->container['action'] = $action;
         $this->container['parameters'] = $parameters;
         $this->container['inputMapping'] = $config['storage']['input']['tables'] ?? [];
         $this->container['logger'] = $logger;
@@ -48,41 +56,54 @@ class Application
 
     public function runAction(): array
     {
-        $uploaded = [];
-        $tables = array_filter($this->container['parameters']['tables'], function ($table) {
-            return ($table['export']);
-        });
-
-        foreach ($tables as $tableConfig) {
-            $manifest = $this->getManifest($tableConfig['tableId']);
-            $this->checkColumns($tableConfig);
-
-            if (empty($tableConfig['items'])) {
-                continue;
-            }
-
-            try {
-                if ($tableConfig['incremental']) {
-                    $this->loadIncremental($tableConfig, $manifest);
-                    $uploaded[] = $tableConfig['tableId'];
-                    continue;
+        $uploadedTableId = [];
+        if (isset($this->container['parameters']['tables'])) {
+            $tables = array_filter($this->container['parameters']['tables'], function ($table) {
+                return ($table['export']);
+            });
+            foreach ($tables as $tableConfig) {
+                $upload = $this->runWriteTable($tableConfig);
+                if (!is_null($upload)) {
+                    $uploadedTableId[] = $upload;
                 }
-
-                $this->loadFull($tableConfig, $manifest);
-                $uploaded[] = $tableConfig['tableId'];
-            } catch (\PDOException $e) {
-                throw new UserException($e->getMessage(), 0, $e, ['trace' => $e->getTraceAsString()]);
-            } catch (UserException $e) {
-                throw $e;
-            } catch (\Throwable $e) {
-                throw new ApplicationException($e->getMessage(), 2, $e, ['trace' => $e->getTraceAsString()]);
+            }
+        } else {
+            $upload = $this->runWriteTable($this->container['parameters']);
+            if (!is_null($upload)) {
+                $uploadedTableId[] = $upload;
             }
         }
-
         return [
             'status' => 'success',
-            'uploaded' => $uploaded,
+            'uploaded' => $uploadedTableId,
         ];
+    }
+
+    public function runWriteTable(array $tableConfig): ?string
+    {
+
+        $manifest = $this->getManifest($tableConfig['tableId']);
+        $this->checkColumns($tableConfig);
+
+        if (empty($tableConfig['items'])) {
+            return null;
+        }
+
+        try {
+            if ($tableConfig['incremental']) {
+                $this->loadIncremental($tableConfig, $manifest);
+                return $tableConfig['tableId'];
+            }
+
+            $this->loadFull($tableConfig, $manifest);
+            return $tableConfig['tableId'];
+        } catch (\PDOException $e) {
+            throw new UserException($e->getMessage(), 0, $e, ['trace' => $e->getTraceAsString()]);
+        } catch (UserException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            throw new ApplicationException($e->getMessage(), 2, $e, ['trace' => $e->getTraceAsString()]);
+        }
     }
 
     public function loadIncremental(array $tableConfig, array $manifest): void

@@ -36,8 +36,8 @@
         "phpcbf": "phpcbf -n --ignore=vendor --extensions=php .",
         "phpstan": "phpstan analyse ./src ./tests --level=0 --no-progress",
         "build": [
-            "@phpstan",
             "@phpcs",
+            "@phpstan",
             "@tests"
         ],
         "ci": [

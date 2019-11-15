@@ -8,12 +8,12 @@ use Symfony\Component\Config\Definition\Builder\ArrayNodeDefinition;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
 
-class ConfigDefinition implements ConfigurationInterface
+class RedshiftConfigRowDefinition implements ConfigurationInterface
 {
     public function getConfigTreeBuilder(): TreeBuilder
     {
-        $treeBuilder = new TreeBuilder();
-        $rootNode = $treeBuilder->root('parameters');
+        $treeBuilder = new TreeBuilder('parameters');
+        $rootNode = $treeBuilder->getRootNode();
 
         $rootNode
             ->children()
@@ -43,10 +43,28 @@ class ConfigDefinition implements ConfigurationInterface
                         ->append($this->addSshNode())
                     ->end()
                 ->end()
-                ->arrayNode('tables')
+                ->scalarNode('tableId')
+                    ->isRequired()
+                    ->cannotBeEmpty()
+                ->end()
+                ->scalarNode('dbName')
+                    ->isRequired()
+                    ->cannotBeEmpty()
+                ->end()
+                ->booleanNode('incremental')
+                    ->defaultValue(false)
+                ->end()
+                ->booleanNode('export')
+                    ->defaultValue(true)
+                ->end()
+                ->arrayNode('primaryKey')
+                    ->prototype('scalar')
+                    ->end()
+                ->end()
+                ->arrayNode('items')
                     ->prototype('array')
                         ->children()
-                            ->scalarNode('tableId')
+                            ->scalarNode('name')
                                 ->isRequired()
                                 ->cannotBeEmpty()
                             ->end()
@@ -54,39 +72,15 @@ class ConfigDefinition implements ConfigurationInterface
                                 ->isRequired()
                                 ->cannotBeEmpty()
                             ->end()
-                            ->booleanNode('incremental')
-                                ->defaultValue(false)
+                            ->scalarNode('type')
+                                ->isRequired()
+                                ->cannotBeEmpty()
                             ->end()
-                            ->booleanNode('export')
-                                ->defaultValue(true)
+                            ->scalarNode('size')
                             ->end()
-                            ->arrayNode('primaryKey')
-                                ->prototype('scalar')
-                                ->end()
+                            ->scalarNode('nullable')
                             ->end()
-                            ->arrayNode('items')
-                                ->prototype('array')
-                                    ->children()
-                                        ->scalarNode('name')
-                                            ->isRequired()
-                                            ->cannotBeEmpty()
-                                        ->end()
-                                        ->scalarNode('dbName')
-                                            ->isRequired()
-                                            ->cannotBeEmpty()
-                                        ->end()
-                                        ->scalarNode('type')
-                                            ->isRequired()
-                                            ->cannotBeEmpty()
-                                        ->end()
-                                        ->scalarNode('size')
-                                        ->end()
-                                        ->scalarNode('nullable')
-                                        ->end()
-                                        ->scalarNode('default')
-                                        ->end()
-                                    ->end()
-                                ->end()
+                            ->scalarNode('default')
                             ->end()
                         ->end()
                     ->end()
@@ -99,8 +93,9 @@ class ConfigDefinition implements ConfigurationInterface
 
     public function addSshNode(): ArrayNodeDefinition
     {
-        $builder = new TreeBuilder();
-        $node = $builder->root('ssh');
+        $builder = new TreeBuilder('ssh');
+        /** @var ArrayNodeDefinition $node */
+        $node = $builder->getRootNode();
 
         $node
             ->children()
