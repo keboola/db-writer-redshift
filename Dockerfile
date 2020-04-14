@@ -1,5 +1,7 @@
 FROM php:7.3-cli
 
+ENV COMPOSER_PROCESS_TIMEOUT 3600
+
 # Dependencies
 RUN apt-get update
 RUN apt-get install -y wget curl make git bzip2 time libzip-dev zip unzip openssl vim libpq-dev
