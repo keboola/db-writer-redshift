@@ -90,7 +90,7 @@ class RedshiftApplication
         }
 
         try {
-            if ($tableConfig['incremental']) {
+            if (isset($tableConfig['incremental']) && $tableConfig['incremental']) {
                 $this->loadIncremental($tableConfig, $manifest);
                 return $tableConfig['tableId'];
             }
