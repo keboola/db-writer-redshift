@@ -20,7 +20,7 @@ class RedshiftApplication
 
     public function __construct(array $config, Logger $logger)
     {
-        $action = !is_null($config['action']) ? $config['action'] : 'run';
+        $action = $config['action'] ?? 'run';
         if (isset($config['parameters']['tables'])) {
             $configDefinition = new RedshiftConfigDefinition();
         } else {
