@@ -12,11 +12,11 @@
     ],
     "require": {
         "php": "^7.1",
-        "keboola/db-writer-common": "^5.4"
+        "keboola/db-writer-common": "^5.7"
     },
     "require-dev": {
         "keboola/coding-standard": "^9.0",
-        "keboola/storage-api-client": "^8.0",
+        "keboola/storage-api-client": "^10.19",
         "phpstan/phpstan-shim": "^0.11.17",
         "phpunit/phpunit": "^8.4"
     },

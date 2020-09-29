@@ -127,7 +127,7 @@
         },
         {
           "source": "simple_increment",
-          "destination": "empty.csv",
+          "destination": "simple_increment.csv",
           "columns": [
             "id",
             "name",
