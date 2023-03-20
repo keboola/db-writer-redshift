@@ -44,7 +44,6 @@ $manifest = [
     'uri' => $tableInfo['uri'],
     'name' => $tableInfo['name'],
     'primary_key' => $tableInfo['primaryKey'],
-    'indexed_columns' => $tableInfo['indexedColumns'],
     'created' => $tableInfo['created'],
     'last_change_date' => $tableInfo['lastChangeDate'],
     'last_import_date' => $tableInfo['lastImportDate'],
