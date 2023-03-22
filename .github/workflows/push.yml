@@ -18,8 +18,8 @@ env:
   REDSHIFT_DB_PORT: 5439
   REDSHIFT_DB_USER: "keboola"
   REDSHIFT_DB_PASSWORD: ${{ secrets.REDSHIFT_DB_PASSWORD }}
-  REDSHIFT_DB_DATABASE: "keboola"
-  REDSHIFT_DB_SCHEMA: "tests_rs_writer"
+  REDSHIFT_DB_DATABASE: "tests_rs_writer"
+  REDSHIFT_DB_SCHEMA: "public"
 
   # DockerHub login
   DOCKERHUB_USER: "keboolabot"
