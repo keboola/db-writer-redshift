@@ -1,4 +1,6 @@
 # AWS Redshift DB Writer
+[![Build Status](https://github.com/keboola/db-writer-redshift/actions/workflows/push.yml/badge.svg?branch=master)](https://github.com/keboola/db-writer-redshift/actions/workflows/push.yml)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/keboola/db-writer-redshift/blob/master/LICENSE.md)
 
 Writes data to Redshift Database.
 
