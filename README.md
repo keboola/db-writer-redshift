@@ -87,3 +87,7 @@ cp .env.template .env
     ```
     docker-compose run --rm ./vendor/bin/phpunit --filter testWrongColumnOrder  
     ```
+
+## License
+
+MIT licensed, see [LICENSE](./LICENSE) file.
