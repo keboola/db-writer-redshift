@@ -1,11 +1,5 @@
 # AWS Redshift DB Writer
 
-[![Docker Repository on Quay](https://quay.io/repository/keboola/db-writer-redshift/status "Docker Repository on Quay")](https://quay.io/repository/keboola/db-writer-redshift)
-[![Build Status](https://travis-ci.org/keboola/db-writer-redshift.svg?branch=master)](https://travis-ci.org/keboola/db-writer-redshift)
-[![Code Climate](https://codeclimate.com/github/keboola/db-writer-redshift/badges/gpa.svg)](https://codeclimate.com/github/keboola/db-writer-redshift)
-[![Test Coverage](https://codeclimate.com/github/keboola/db-writer-redshift/badges/coverage.svg)](https://codeclimate.com/github/keboola/db-writer-redshift/coverage)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/keboola/db-writer-redshift/blob/master/LICENSE.md)
-
 Writes data to Redshift Database.
 
 ## Example configuration
