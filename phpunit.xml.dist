@@ -9,22 +9,12 @@
          stopOnFailure="false"
          bootstrap="vendor/autoload.php">
 
-    <php>
-        <const name="ROOT_PATH" value="./"/>
-        <const name="APP_NAME" value="wr-db-redshift"/>
-    </php>
-
-    <testsuite name="Redshift Writer Test Suite">
-        <directory>tests</directory>
-    </testsuite>
-
-    <filter>
-        <whitelist processUncoveredFilesFromWhitelist="true">
-            <directory suffix=".php">./src/Keboola/DbWriter</directory>
-        </whitelist>
-    </filter>
-
-    <logging>
-        <log type="coverage-clover" target="build/logs/clover.xml"/>
-    </logging>
+    <testsuites>
+        <testsuite name="unit">
+            <directory>tests/phpunit</directory>
+        </testsuite>
+        <testsuite name="functional">
+            <directory>tests/functional</directory>
+        </testsuite>
+    </testsuites>
 </phpunit>

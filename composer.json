@@ -10,31 +10,35 @@
             "email": "devel@keboola.com"
         }
     ],
+
     "require": {
-        "php": "^7.1",
-        "keboola/db-writer-common": "^5.7"
+        "php": "^8.2",
+        "ext-pdo": "*",
+        "keboola/db-writer-common": "^6.0"
     },
     "require-dev": {
-        "keboola/coding-standard": "^9.0",
-        "keboola/storage-api-client": "^10.19",
-        "phpstan/phpstan-shim": "^0.11.17",
-        "phpunit/phpunit": "^8.4"
+        "keboola/coding-standard": "^15.0",
+        "keboola/storage-api-client": "^14.16",
+        "phpstan/phpstan": "^1.10",
+        "phpunit/phpunit": "^11.0"
     },
     "autoload": {
         "psr-4": {
-            "Keboola\\": "src/Keboola"
+            "Keboola\\DbWriter\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Keboola\\DbWriter\\Tests\\": "tests/Keboola"
+            "Keboola\\DbWriter\\Redshift\\Tests\\": "tests/phpunit/",
+            "Keboola\\DbWriter\\Redshift\\FunctionalTests\\": "tests/functional/",
+            "Keboola\\DbWriter\\Redshift\\PrepareTestsData\\": "tests/prepare-data/"
         }
     },
     "scripts": {
         "tests": "phpunit",
-        "phpcs": "phpcs -n --ignore=vendor --extensions=php .",
+        "phpcs": "phpcs -n --ignore=vendor,tests --extensions=php .",
         "phpcbf": "phpcbf -n --ignore=vendor --extensions=php .",
-        "phpstan": "phpstan analyse ./src ./tests --level=0 --no-progress",
+        "phpstan": "phpstan analyse --no-progress --level=max ./src -c phpstan.neon",
         "build": [
             "@phpcs",
             "@phpstan",
@@ -47,6 +51,9 @@
     },
     "config": {
         "sort-packages": true,
-        "optimize-autoloader": true
+        "optimize-autoloader": true,
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        }
     }
 }
