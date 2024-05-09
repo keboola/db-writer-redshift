@@ -36,8 +36,6 @@ class DatadirTest extends AbstractDatadirTestCase
         array $data = [],
         string $dataName = '',
     ) {
-        putenv('SSH_PRIVATE_KEY=' . file_get_contents('/root/.ssh/id_rsa'));
-        putenv('SSH_PUBLIC_KEY=' . file_get_contents('/root/.ssh/id_rsa.pub'));
         parent::__construct($name, $data, $dataName);
         $databaseConfig = $this->getDatabaseConfig();
         $connectionFactory = new RedshiftConnectionFactory();
