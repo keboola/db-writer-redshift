@@ -1,0 +1,6 @@
+Creating PDO connection to "pgsql:host=%s.redshift.amazonaws.com;port=5439;dbname=%s;keepalives=1;keepalives_idle=60".
+Dropping table "incremental_temp%s"
+Creating temporary table "incremental_temp%s"
+Writing data to table "incremental_temp%s"
+Table "incremental" has primary key, using upsert.
+Data upserted to table "incremental".

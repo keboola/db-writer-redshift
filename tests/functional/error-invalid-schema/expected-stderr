@@ -1,0 +1,1 @@
+SQLSTATE[3F000]: Invalid schema name: 7 ERROR:  schema "invalidschema" does not exist
