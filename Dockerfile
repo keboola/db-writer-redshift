@@ -1,4 +1,4 @@
-FROM php:8.2-cli AS app
+FROM php:8.2-cli
 
 ARG COMPOSER_FLAGS="--prefer-dist --no-interaction"
 ENV COMPOSER_ALLOW_SUPERUSER=1
@@ -46,12 +46,3 @@ COPY . /code/
 RUN composer install $COMPOSER_FLAGS
 
 CMD php /code/src/run.php
-
-FROM app AS dev
-
-ARG XDEBUG_VERSION=""
-
-COPY docker/php/xdebug.ini /usr/local/etc/php/conf.d/
-
-RUN pecl install xdebug${XDEBUG_VERSION} \
- && docker-php-ext-enable xdebug

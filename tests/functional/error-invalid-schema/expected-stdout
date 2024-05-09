@@ -1,0 +1,5 @@
+Creating PDO connection to "pgsql:host=%s.redshift.amazonaws.com;port=5439;dbname=%s;keepalives=1;keepalives_idle=60".
+SQLSTATE[3F000]: Invalid schema name: 7 ERROR:  schema "invalidschema" does not exist. Retrying... [1x]
+SQLSTATE[3F000]: Invalid schema name: 7 ERROR:  schema "invalidschema" does not exist. Retrying... [2x]
+SQLSTATE[3F000]: Invalid schema name: 7 ERROR:  schema "invalidschema" does not exist. Retrying... [3x]
+SQLSTATE[3F000]: Invalid schema name: 7 ERROR:  schema "invalidschema" does not exist. Retrying... [4x]

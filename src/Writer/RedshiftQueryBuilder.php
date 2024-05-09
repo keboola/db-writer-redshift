@@ -134,7 +134,7 @@ class RedshiftQueryBuilder extends DefaultQueryBuilder
         $valuesClause = implode(',', $valuesClauseArr);
 
         return sprintf(
-            'UPDATE {%s} SET {%s} FROM {%s} WHERE {%s}',
+            'UPDATE %s SET %s FROM %s WHERE %s',
             $connection->quoteIdentifier($exportConfig->getDbName()),
             $valuesClause,
             $connection->quoteIdentifier($stageTableName),
@@ -157,7 +157,7 @@ class RedshiftQueryBuilder extends DefaultQueryBuilder
         $whereClause = implode(' AND ', $whereClauseArr);
 
         return sprintf(
-            'DELETE FROM {%s} USING {%s} WHERE {%s}',
+            'DELETE FROM %s USING %s WHERE %s',
             $connection->quoteIdentifier($stageTableName),
             $connection->quoteIdentifier($exportConfig->getDbName()),
             $whereClause,
@@ -172,7 +172,7 @@ class RedshiftQueryBuilder extends DefaultQueryBuilder
         $columns = $this->quotedDbColumnNames($exportConfig->getItems(), $connection);
 
         return sprintf(
-            'INSERT INTO {%s} ({%s}) SELECT * FROM {%s}',
+            'INSERT INTO %s (%s) SELECT * FROM %s',
             $connection->quoteIdentifier($exportConfig->getDbName()),
             implode(', ', $columns),
             $connection->quoteIdentifier($stageTableName),

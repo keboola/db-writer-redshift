@@ -10,7 +10,7 @@ use Psr\Log\LoggerInterface;
 
 class RedshiftConnectionFactory
 {
-    public function create(DatabaseConfig $databaseConfig, LoggerInterface $logger): PdoConnection
+    public function create(DatabaseConfig $databaseConfig, LoggerInterface $logger): RedshiftConnection
     {
         $connection = new RedshiftConnection(
             $logger,

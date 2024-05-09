@@ -7,7 +7,6 @@ namespace Keboola\DbWriter\Writer;
 use Aws\S3\S3Client;
 use Keboola\DbWriter\Exception\UserException;
 use Keboola\DbWriterAdapter\BaseWriteAdapter;
-use Keboola\DbWriterAdapter\Query\QueryBuilder;
 use Keboola\DbWriterConfig\Configuration\ValueObject\ExportConfig;
 use Keboola\DbWriterConfig\Configuration\ValueObject\ItemConfig;
 
@@ -52,6 +51,10 @@ class RedshiftAdapter extends BaseWriteAdapter
             }
         }
 
+        $this->logger->info(sprintf(
+            'Writing data to table "%s"',
+            $tableName,
+        ));
         $this->connection->exec(
             $this->queryBuilder->writeDataFromS3QueryStatement($tableName, $s3info),
         );
@@ -94,14 +97,13 @@ class RedshiftAdapter extends BaseWriteAdapter
         $path = parse_url($path);
         assert(isset($path['host']));
         assert(isset($path['path']));
+        /** @var array{Body: string} $response */
         $response = $s3Client->getObject([
             'Bucket' => $path['host'],
             'Key' => ltrim($path['path'], '/'),
         ]);
-        assert(is_string($response['Body']));
-
         /** @var array{entries: array{url: string}[]} $responseBody */
-        $responseBody = json_decode($response['Body'], true);
+        $responseBody = json_decode((string) $response['Body'], true);
         return $responseBody;
     }
 }
