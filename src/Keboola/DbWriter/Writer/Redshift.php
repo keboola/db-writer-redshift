@@ -8,6 +8,7 @@ use Keboola\Csv\CsvFile;
 use Keboola\DbWriter\Exception\ApplicationException;
 use Keboola\DbWriter\Exception\UserException;
 use Keboola\DbWriter\Logger;
+use Keboola\DbWriter\Redshift\TableDescriptions;
 use Keboola\DbWriter\Writer;
 use Keboola\DbWriter\WriterInterface;
 
@@ -208,6 +209,29 @@ class Redshift extends Writer implements WriterInterface
         $this->drop($table['dbName']);
     }
 
+    public function applyDescriptions(string $tableName, TableDescriptions $descriptions): void
+    {
+        $table = $descriptions->getTable();
+        if ($table !== null) {
+            $this->logger->info(sprintf('Setting comment on table "%s"', $tableName));
+            $this->db->exec(sprintf(
+                'COMMENT ON TABLE %s IS %s',
+                $this->quoteIdentifier($tableName),
+                $this->db->quote($table)
+            ));
+        }
+
+        foreach ($descriptions->getColumns() as $column => $description) {
+            $this->logger->info(sprintf('Setting comment on column "%s" in table "%s"', $column, $tableName));
+            $this->db->exec(sprintf(
+                'COMMENT ON COLUMN %s.%s IS %s',
+                $this->quoteIdentifier($tableName),
+                $this->quoteIdentifier((string) $column),
+                $this->db->quote($description)
+            ));
+        }
+    }
+
     public static function getAllowedTypes(): array
     {
         return self::$allowedTypes;
@@ -316,6 +340,11 @@ class Redshift extends Writer implements WriterInterface
     private function escape(string $str): string
     {
         return '"' . $str . '"';
+    }
+
+    private function quoteIdentifier(string $name): string
+    {
+        return '"' . str_replace('"', '""', $name) . '"';
     }
 
     public function testConnection(): void

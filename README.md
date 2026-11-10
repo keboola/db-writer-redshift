@@ -62,6 +62,11 @@ Writes data to Redshift Database.
     }
 ```
 
+`propagateDescriptions` (per table, default `true`) writes the table and column descriptions from the input
+table manifest (`description`, `schema[].description`) as Redshift comments after the load. Empty descriptions
+never clear an existing comment, and a failure to write a comment is logged as a warning without failing the job.
+Set it to `false` to leave comments untouched.
+
 ## Development
 
 App is developed on localhost using TDD.

@@ -1,0 +1,10 @@
+{
+    "id": "described",
+    "columns": ["id", "name", "glasses"],
+    "description": "People and their glasses",
+    "schema": [
+        {"name": "id", "description": "Person id"},
+        {"name": "name", "description": "Person's \"full\" name"},
+        {"name": "glasses", "description": "  "}
+    ]
+}
