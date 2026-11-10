@@ -10,6 +10,7 @@ use Keboola\DbWriter\Exception\UserException;
 use Keboola\DbWriter\Redshift\Configuration\RedshiftActionConfigRowDefinition;
 use Keboola\DbWriter\Redshift\Configuration\RedshiftConfigDefinition;
 use Keboola\DbWriter\Redshift\Configuration\RedshiftConfigRowDefinition;
+use Keboola\DbWriter\Redshift\TableDescriptionsReader;
 use Keboola\DbWriter\Writer\Redshift;
 use Pimple\Container;
 
@@ -92,17 +93,41 @@ class RedshiftApplication
         try {
             if (isset($tableConfig['incremental']) && $tableConfig['incremental']) {
                 $this->loadIncremental($tableConfig, $manifest);
-                return $tableConfig['tableId'];
+            } else {
+                $this->loadFull($tableConfig, $manifest);
             }
-
-            $this->loadFull($tableConfig, $manifest);
-            return $tableConfig['tableId'];
         } catch (\PDOException $e) {
             throw new UserException($e->getMessage(), 0, $e, ['trace' => $e->getTraceAsString()]);
         } catch (UserException $e) {
             throw $e;
         } catch (\Throwable $e) {
             throw new ApplicationException($e->getMessage(), 2, $e, ['trace' => $e->getTraceAsString()]);
+        }
+
+        $this->propagateDescriptions($tableConfig, $manifest);
+        return $tableConfig['tableId'];
+    }
+
+    private function propagateDescriptions(array $tableConfig, array $manifest): void
+    {
+        if (!$tableConfig['propagateDescriptions']) {
+            return;
+        }
+
+        try {
+            $descriptions = (new TableDescriptionsReader())->read($manifest, $tableConfig['items']);
+            if ($descriptions->isEmpty()) {
+                return;
+            }
+            /** @var Redshift $writer */
+            $writer = $this->container['writer'];
+            $writer->applyDescriptions($tableConfig['dbName'], $descriptions);
+        } catch (\Throwable $e) {
+            $this->container['logger']->warning(sprintf(
+                'Descriptions were not written to table "%s": %s',
+                $tableConfig['dbName'],
+                $e->getMessage()
+            ));
         }
     }
 

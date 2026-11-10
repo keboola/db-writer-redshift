@@ -3,6 +3,8 @@ FROM php:7.3-cli
 ENV COMPOSER_PROCESS_TIMEOUT 3600
 
 # Dependencies
+# bullseye-security packages return 404 on the regular mirrors; archive.debian.org still serves them
+RUN sed -i -e 's|http://deb.debian.org|http://archive.debian.org|g' -e 's|http://security.debian.org|http://archive.debian.org|g' /etc/apt/sources.list
 RUN apt-get update
 RUN apt-get install -y wget curl make git bzip2 time libzip-dev zip unzip openssl vim libpq-dev
 RUN docker-php-source extract \
